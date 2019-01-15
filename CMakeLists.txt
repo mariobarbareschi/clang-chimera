@@ -28,7 +28,6 @@ set(CMAKE_BUILD_TYPE Debug)
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
 # Required packages
 ## Require LLVM and Clang
-#find_package(LLVM 3.7.0 REQUIRED CONFIG)
 find_package(LLVM 3.9.1 REQUIRED CONFIG)
 ## Require Pthreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -52,7 +51,7 @@ message(STATUS "llvm_components:  ${llvm-comp}")
 
 # Find the libraries that correspond to the LLVM/Clang components
 ## Mapping components to libraries names
-llvm_map_components_to_libnames(llvm_libs all analysis asmparser asmprinter bitreader bitwriter bpf bpfasmprinter bpfcodegen bpfdesc bpfinfo codegen core coverage debuginfocodeview debuginfodwarf debuginfopdb engine executionengine globalisel hexagon hexagonasmparser hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipo irreader libdriver lineeditor linker lto mc mcdisassembler mcjit mcparser mirparser native nativecodegen objcarcopts object objectyaml option orcjit passes profiledata runtimedyld scalaropts selectiondag support symbolize systemz systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86 x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcore xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
+llvm_map_components_to_libnames(llvm_libs insert-llvm-libs-here)
 
 ## Clang libraries
 list(APPEND clang_libs
