@@ -11,8 +11,12 @@ before_install:
 - ninja && sudo ninja install
 - sudo ls /usr/bin
 - sudo ls /usr/local
-- sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang-3.9 100
-- sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.9 100
+- sudo ls /usr/local/bin
+- sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang 100
+- sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang 100
+- sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config 100
+- llvm-config --version
+- clang --version
 install:
 - cd ../..
 - mkdir build
