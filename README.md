@@ -1,4 +1,4 @@
-# clang-chimera
+# Clang-Chimera
 [![Build Status](https://travis-ci.org/andreaaletto/clang-chimera.svg?branch=master)](https://travis-ci.org/andreaaletto/clang-chimera)
 ------------
 Clang-Chimera is a framework to easily develop operators to automatically modify C/C++ codes through code patterns identification.
@@ -6,7 +6,7 @@ Clang-Chimera is a framework to easily develop operators to automatically modify
 See the [guide](doc/guide/guide.pdf)!
 
 ## Build clang-chimera from source
-------------
+
 In order to build **clang-chimera** from source you will need an installation of LLVM/Clang 3.9.1 compiled with the following cmake flags:
 ```
  -DLLVM_ENABLE_CXX1Y=true 
