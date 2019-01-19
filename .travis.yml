@@ -1,0 +1,15 @@
+sudo: required
+language: C
+before_install:
+- sudo apt-get -qq update
+- sudo apt-get install -y cmake subversion ninja-build build-essential zlib1g-dev libffi-dev libedit-dev libncurses5-dev libboost-dev
+- svn co -q http://llvm.org/svn/llvm-project/llvm/tags/RELEASE_391/final llvm
+- cd llvm/tools
+- svn co -q http://llvm.org/svn/llvm-project/cfe/tags/RELEASE_391/final clang
+- mkdir ../build && cd ../build
+- CC=gcc CXX=g++ cmake -DLLVM_ENABLE_CXX1Y=true -DLLVM_ENABLE_RTTI=ON -DLLVM_TARGET_ARCH="X86" -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_ENABLE_FFI=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -G Ninja ..
+install:
+- ninja && sudo ninja install
+script:
+- llvm-config --version
+- clang --version
