@@ -21,9 +21,9 @@ before_install:
 - sudo ls /usr/local/bin
 - sudo ls /usr/local/clang
 - sudo ls /usr/local/clang/bin
-- sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/local/bin/clang 100
-- sudo update-alternatives --install /usr/bin/clang clang /usr/local/bin/clang 100
-- sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/local/bin/llvm-config 100
+- sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/local/clang/bin/clang 100
+- sudo update-alternatives --install /usr/bin/clang clang /usr/local/clang/bin/clang 100
+- sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config 100
 - llvm-config --version
 - clang --version
 install:
