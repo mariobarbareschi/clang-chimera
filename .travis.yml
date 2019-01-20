@@ -38,7 +38,7 @@ install:
 - sudo sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
 - cmake .. -G Ninja
 - ninja
-- sudo ninja-install
+- sudo ninja install
 script:
 - llvm-config --version
 - clang --version
