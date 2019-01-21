@@ -79,3 +79,13 @@ $ clang-chimera -version
 
 ## Quick Start
 If you don't want to build LLVM/Clang and Clang-Chimera from scratch, a ready-to-use solution is provided through a [Docker](https://www.docker.com/) Container. Please refer to [IIDEAA Docker](https://github.com/andreaaletto/iideaa-docker) repository for further details.
+
+#### LICENSE
+--------
+
+* [GPLV3.0](https://www.gnu.org/licenses/licenses.html)
+
+#### Contributing
+----------
+
+Github is for social coding: if you want to write code, I encourage contributions through pull requests from forks of this repository. 
