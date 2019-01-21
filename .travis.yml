@@ -1,7 +1,3 @@
-branches:
-	only:
-	- master
-	- stable
 sudo: required
 language: C
 before_install:
