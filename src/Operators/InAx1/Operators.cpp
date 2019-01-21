@@ -27,7 +27,7 @@
 #include "Operators/InAx1/Operators.h"
 
 ::std::unique_ptr<::chimera::m_operator::MutationOperator>
-chimera::examples::getInAx1Operator() {
+chimera::inax1::getInAx1Operator() {
   ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
       new ::chimera::m_operator::MutationOperator(
           "InAx1-Operator",   // Operator identifier
@@ -38,7 +38,7 @@ chimera::examples::getInAx1Operator() {
 
   // Add mutators to the current operator
   Op->addMutator(
-      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorGreaterOpReplacement()));
+      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorInAx1()));
 
   // Return the operator
   return Op;

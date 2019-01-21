@@ -38,6 +38,7 @@ int main(int argc, const char **argv) {
   chimeraTool.registerMutationOperator(::chimera::vpa_nmutator::getVPANOperator());
   chimeraTool.registerMutationOperator(::chimera::perforation::getPerforationFirstOperator());
   chimeraTool.registerMutationOperator(::chimera::perforation::getPerforationSecondOperator());
+  chimeraTool.registerMutationOperator(::chimera::inax1::getInAx1Operator());
 
   return chimeraTool.run(argc, argv);
 }

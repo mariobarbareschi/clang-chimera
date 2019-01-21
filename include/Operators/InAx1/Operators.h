@@ -23,8 +23,8 @@
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_EXAMPLES_OPERATORS_H
-#define INCLUDE_OPERATORS_EXAMPLES_OPERATORS_H
+#ifndef INCLUDE_OPERATORS_INAX1_OPERATORS_H
+#define INCLUDE_OPERATORS_INAX1_OPERATORS_H
 
 #include "Core/MutationOperator.h"
 
@@ -41,5 +41,5 @@ namespace inax1
 } // end namespace chimera::inax1
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_EXAMPLES_OPERATORS_H */
+#endif /* INCLUDE_OPERATORS_INAX1_OPERATORS_H */
 
