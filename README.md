@@ -76,3 +76,6 @@ At the end of the process you will find clang-chimera in ``` /usr/bin```. Try ru
 ``` 
 $ clang-chimera -version
 ``` 
+
+## Quick Start
+If you don't want to build LLVM/Clang and Clang-Chimera from scratch, a ready-to-use solution is provided through a [Docker](https://www.docker.com/) Container. Please refer to [IIDEAA Docker](https://github.com/andreaaletto/iideaa-docker) repository for further details.
