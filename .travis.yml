@@ -21,6 +21,7 @@ install:
 - cd ../..
 - chmod +x run_cmake
 - ./run_cmake
+- sudo sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
 - cd build
 - ninja
 - sudo ninja install
