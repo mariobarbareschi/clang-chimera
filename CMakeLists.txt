@@ -45,13 +45,12 @@ message(STATUS "Added LLVM definitions: ${LLVM_DEFINITIONS}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-execute_process(COMMAND "/usr/bin/llvm-config --components" RESULT_VARIABLE llvm-comp) 
-
-message(STATUS "llvm_components:  ${llvm-comp}")
+SET(LLVM_COMPS "" CACHE LIST "Insert llvm components here") 
+message(STATUS "llvm_components:  ${LLVM_COMPS}")
 
 # Find the libraries that correspond to the LLVM/Clang components
 ## Mapping components to libraries names
-llvm_map_components_to_libnames(llvm_libs insert-llvm-libs-here)
+llvm_map_components_to_libnames(llvm_libs ${LLVM_COMPS})
 
 ## Clang libraries
 list(APPEND clang_libs

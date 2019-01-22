@@ -19,12 +19,9 @@ before_install:
 install:
 - ninja && sudo ninja install
 - cd ../..
-- mkdir build
+- chmod +x run_cmake
+- ./run_cmake
 - cd build
-- LLVM_LIBS="$(llvm-config --components)" && sed -i "s/insert-llvm-libs-here/${LLVM_LIBS}/g" ../CMakeLists.txt
-- sed -i "s/all-targets //g" ../CMakeLists.txt
-- sudo sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
-- cmake .. -G Ninja
 - ninja
 - sudo ninja install
 script:
