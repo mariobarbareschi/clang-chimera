@@ -223,10 +223,10 @@ bool chimera::inax1::MutatorInAx1::match(
     assert(internalLhs && "LHS is nullptr");
     assert(internalRhs && "RHS is nullptr");
 
-    ::std::string opId = "OP_" + ::std::to_string(bopNum);
+    ::std::string nabId = "OP_" + ::std::to_string(bopNum);
     // TODO: Add operation type
     // Add to the additional compile commands
-    //  this->additionalCompileCommands.push_back("-D" + opId);
+    //  this->additionalCompileCommands.push_back("-D" + nabId);
 
     ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
     ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
@@ -244,8 +244,8 @@ bool chimera::inax1::MutatorInAx1::match(
 
     // Create a global var before the function
     //FIXME: QUI AGGIUNGE LA VARIABILE IN TESTA AL FILE
-    rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int8_t " + opId + ";\n");
-    //rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "::fap::FloatPrecTy " + opId + "(8,23);\n");
+    rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + ";\n");
+    //rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "::fap::FloatPrecTy " + nabId + "(8,23);\n");
     
 
     bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(internalLhs);
@@ -259,31 +259,15 @@ bool chimera::inax1::MutatorInAx1::match(
       DEBUG(::llvm::dbgs() << "Compound Operation: II Type"
                           << "\n");
 
-      ::std::string op_char;
-      switch (bop->getOpcode()) {
-      case BO_AddAssign:
-        op_char = '+';
-        break;
-      case BO_SubAssign:
-        op_char = '-';
-        break;
-      case BO_MulAssign:
-        op_char = '*';
-        break;
-      case BO_DivAssign:
-        op_char = '/';
-        break;
-      default:
-        llvm_unreachable("OpCode isn't supported");
-      }
+      ::std::string op_char = '+';
 
-      ::std::string bopReplacement = lhsString + " = " +
-                                    castFlapFloat(lhsString, opRetType, opId) +
-                                    " " + op_char + " ";
+      ::std::string bopReplacement = lhsString + " = " + castFlapFloat(lhsString, opRetType, nabId) + " " + op_char + " ";
+      ::std::string bopReplacement = lhsString + " = " + "inax1_sum( " + nabId + ", " + lhsString + " ";
+
       if (isRhsBinaryOp) {
         bopReplacement += rhsString;
       } else {
-        bopReplacement += castFlapFloat(rhsString, opRetType, opId);
+        bopReplacement += castFlapFloat(rhsString, opRetType, nabId);
       }
 
       // Apply replacement
@@ -304,8 +288,8 @@ bool chimera::inax1::MutatorInAx1::match(
                             << "\n");
 
         // Apply replacements
-        castFlapFloat(rw, lhs, opRetType, opId);
-        castFlapFloat(rw, rhs, opRetType, opId);
+        castFlapFloat(rw, lhs, opRetType, nabId);
+        castFlapFloat(rw, rhs, opRetType, nabId);
       } else {
         // II level
         DEBUG(::llvm::dbgs() << "II type"
@@ -313,9 +297,9 @@ bool chimera::inax1::MutatorInAx1::match(
 
         // Apply replacements depending on the hand side types
         if (!isLhsBinaryOp) {
-          castFlapFloat(rw, lhs, opRetType, opId);
+          castFlapFloat(rw, lhs, opRetType, nabId);
         } else {
-          castFlapFloat(rw, rhs, opRetType, opId);
+          castFlapFloat(rw, rhs, opRetType, nabId);
         }
       }
 
@@ -347,7 +331,7 @@ bool chimera::inax1::MutatorInAx1::match(
     // Store mutations info:
     FLAPFloatOperationMutator::MutationInfo mutationInfo;
     // * Operation Identifier
-    mutationInfo.opId = opId;
+    mutationInfo.nabId = nabId;
     // * Line location
     FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
@@ -408,7 +392,7 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
       // Search in all info
       for (const auto &mII : this->mutationsInfo) {
         // Check that isn't the same mutationInfo
-        if (mII.opId != mI.opId) {
+        if (mII.nabId != mI.nabId) {
           // Search both operand inside mI.op1, if they are both found AND
           // the operation between them is mII.opTy there is a match.
           // Search from the end of op1 and begin of op2 the OpcodeStr of mII
@@ -421,8 +405,8 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
                           BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
                   mI.op1.end()) {
             DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op1
-                                 << " IS Operation: " << mII.opId << "\n");
-            mI.op1 = mII.opId; // found the new label
+                                 << " IS Operation: " << mII.nabId << "\n");
+            mI.op1 = mII.nabId; // found the new label
             break;
           }
         }
@@ -433,7 +417,7 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
       // Search in all info
       for (const auto &mII : this->mutationsInfo) {
         // Check that isn't the same mutationInfo
-        if (mII.opId != mI.opId) {
+        if (mII.nabId != mI.nabId) {
           // Search both operand inside mI.op1, if they are both found AND
           // the operation between them is mII.opTy there is a match.
           // Search from the end of op1 and begin of op2 the OpcodeStr of mII
@@ -446,8 +430,8 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
                           BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
                   mI.op1.end()) {
             DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op2
-                                 << " IS Operation: " << mII.opId << "\n");
-            mI.op2 = mII.opId; // found the new label
+                                 << " IS Operation: " << mII.nabId << "\n");
+            mI.op2 = mII.nabId; // found the new label
             break;
           }
         }
@@ -474,8 +458,8 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
         // Check if operand 1 is a retVar for anyone of them
         if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
           DEBUG(::llvm::dbgs() << "Operand: " << localOp
-                               << " IS Operation: " << rIt2->opId << "\n");
-          localOp = rIt2->opId; // new label
+                               << " IS Operation: " << rIt2->nabId << "\n");
+          localOp = rIt2->nabId; // new label
           break;
         }
       }
@@ -488,8 +472,8 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
         // Check if operand 1 is a retVar for anyone of them
         if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
           DEBUG(::llvm::dbgs() << "Operand: " << localOp
-                               << " IS Operation: " << rIt2->opId << "\n");
-          localOp = rIt2->opId; // new label
+                               << " IS Operation: " << rIt2->nabId << "\n");
+          localOp = rIt2->nabId; // new label
           break;
         }
       }
@@ -498,7 +482,7 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(
 
   // for (const auto& mutationInfo : this->mutationsInfo) {
   for (const auto &mutationInfo : cMutationsInfo) {
-    report << mutationInfo.opId << "," << mutationInfo.line << ","
+    report << mutationInfo.nabId << "," << mutationInfo.line << ","
            << mutationInfo.opRetTy << "," << mapOpCode(mutationInfo.opTy) << ","
            << "\"" << mutationInfo.op1 << "\","
            << "\"" << mutationInfo.op2 << "\","
