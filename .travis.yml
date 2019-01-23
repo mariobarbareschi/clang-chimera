@@ -18,13 +18,11 @@ before_install:
 - CC=gcc CXX=g++ cmake -DLLVM_ENABLE_CXX1Y=true -DLLVM_ENABLE_RTTI=ON -DLLVM_TARGET_ARCH="X86" -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_ENABLE_FFI=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -G Ninja ..
 install:
 - ninja && sudo ninja install
-- cd ../..
-- mkdir build
-- cd build
-- LLVM_LIBS="$(llvm-config --components)" && sed -i "s/insert-llvm-libs-here/${LLVM_LIBS}/g" ../CMakeLists.txt
-- sed -i "s/all-targets //g" ../CMakeLists.txt
 - sudo sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
-- cmake .. -G Ninja
+- cd ../..
+- chmod +x run_cmake
+- ./run_cmake
+- cd build
 - ninja
 - sudo ninja install
 script:
