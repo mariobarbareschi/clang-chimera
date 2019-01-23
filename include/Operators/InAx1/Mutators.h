@@ -62,7 +62,8 @@ public:
         : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
                     "mutator_inax1", // String identifier
                     "Replaces exact sum with inexact sum based on InAx1 cell", // Description
-                    1 // One mutation type
+                    1, // One mutation type
+                    true
                   ) {}
     virtual clang::ast_matchers::StatementMatcher getStatementMatcher() override; // Need to override this method, first part of matching rules
     virtual bool match ( const ::chimera::mutator::NodeType &node ) override; // Also this one, second part of matching rules

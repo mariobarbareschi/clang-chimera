@@ -26,6 +26,13 @@
 #include "Operators/InAx1/Mutators.h"
 #include "llvm/Support/ErrorHandling.h"
 
+#include "Log.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
+#include <iostream>
+
+#define DEBUG_TYPE "mutator_iideaa"
+
 using namespace clang;
 using namespace clang::ast_matchers;
 
@@ -255,7 +262,7 @@ bool chimera::inax1::MutatorInAx1::match(
   // Replace all the text of the binary operator, substituting the operation
   // (which bind lhs and rhs) with the replacement
     ::std::string bopReplacement = "inax1_sum( " + nabId + ", " + lhsString + ", " + rhsString + ")";
-    rw.ReplaceText(op->getSourceRange(), bopReplacement);
+    rw.ReplaceText(bop->getSourceRange(), bopReplacement);
 
 //     // Manage CompoundAssign that are automatically of II type
 //     if (bop->isCompoundAssignmentOp()) {
