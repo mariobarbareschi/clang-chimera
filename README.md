@@ -51,28 +51,20 @@ $ clang --version
 
 #### Install Clang-Chimera
 ------------
-First of all you will need to edit the file ```CMakeLists.txt```, search for ```insert-llvm-libs-here``` and substitute this placeholder with the available LLVM libraries, installed with the compiler. These libraries can be easily found executing ```llvm-config --components```.
-To configure correctly in some terminal lines, run the following commands (assuming you have cloned this repo in your home folder):
-```
-$ LLVM_LIBS="$(llvm-config --components)"
-$ sed -i "s/insert-llvm-libs-here/${LLVM_LIBS}/g" ~/clang-chimera/CMakeLists.txt
-$ sed -i "s/all-targets //g" ~/clang-chimera/CMakeLists.txt
-```
-
-At this point you need to solve a LLVM bug, involving the JIT-compiler: the file ```/usr/lib/cmake/llvm/LLVM-Config.cmake``` tries to find the JIT-compiler library with the name ***jit***, but it fails because the actual name of this component is ***mcjit***. So it is necessary to edit ```LLVM-Config.cmake``` in this way:
+First of all you need to solve a LLVM bug, involving the JIT-compiler: the file ```/usr/lib/cmake/llvm/LLVM-Config.cmake``` tries to find the JIT-compiler library with the name ***jit***, but it fails because the actual name of this component is ***mcjit***. So it is necessary to edit ```LLVM-Config.cmake``` in this way:
 ``` 
 # sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
 ``` 
-
+Before building Clang-Chimera, you need to configure it with CMake. You need to pass to CMake configurator the list of LLVM's available components. You can run the script ```run_cmake``` or configure Clang-Chimera manually. 
 Now you can build Clang-Chimera source. It is recomended to use [Ninja](https://ninja-build.org/) as building tool, since it takes advantage of the multicore parallelism by default. 
 ``` 
 $ cd ~/clang-chimera 
-$ mkdir build && cd build
-$ cmake .. -G Ninja
+$ ./run_cmake
+$ cd build
 $ ninja
 $ sudo ninja install
 ``` 
-At the end of the process you will find clang-chimera in ``` /usr/bin```. Try run:
+At the end of the process you will find clang-chimera in ```/usr/bin```. Try run:
 ``` 
 $ clang-chimera -version
 ``` 
