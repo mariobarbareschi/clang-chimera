@@ -23,8 +23,8 @@
 /// \brief This file contains sample mutators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_EXAMPLES_MUTATORS_H
-#define INCLUDE_OPERATORS_EXAMPLES_MUTATORS_H
+#ifndef INCLUDE_OPERATORS_INAX1_MUTATORS_H
+#define INCLUDE_OPERATORS_INAX1_MUTATORS_H
 
 #include "Core/Mutator.h"
 
@@ -44,7 +44,7 @@ class MutatorInAx1 : public chimera::mutator::Mutator
 {
     ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
-        ::std::string opId;  ///< Operation Identifier
+        ::std::string nabId;  ///< Operation Identifier
         unsigned line;  ///< Occurrence line
         ::std::string opRetTy;  ///< Operation Return Type
         ::clang::BinaryOperatorKind opTy;  ///< Operation Type
@@ -83,4 +83,4 @@ private:
 } // end namespace chimera::inax1
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_EXAMPLES_MUTATORS_H */
+#endif /* INCLUDE_OPERATORS_INAX1_MUTATORS_H */

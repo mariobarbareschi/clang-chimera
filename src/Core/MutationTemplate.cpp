@@ -492,15 +492,15 @@ public:
           ::std::to_string(this->localMutantId) + ::chimera::fs::pathSep);
     }
 
-    // Delete temp folder, deleting all files inside
-    ::std::string tempDir = this->mutationTemplate.getTargetOutputDirectory() +
-                            this->tempDirName + chimera::fs::pathSep;
-    // Delete temp file for syntax checking
-    ::llvm::sys::fs::remove(tempDir +
-                            this->mutationTemplate.getTargetFilename());
+    // // Delete temp folder, deleting all files inside
+    // ::std::string tempDir = this->mutationTemplate.getTargetOutputDirectory() +
+    //                         this->tempDirName + chimera::fs::pathSep;
+    // // Delete temp file for syntax checking
+    // ::llvm::sys::fs::remove(tempDir +
+    //                         this->mutationTemplate.getTargetFilename());
 
-    // Delete the temp directory
-    ::llvm::sys::fs::remove(tempDir);
+    // // Delete the temp directory
+    // ::llvm::sys::fs::remove(tempDir);
 
     //    ChimeraLogger::verbose(" [ DONE ] Cleaning up");
   }
