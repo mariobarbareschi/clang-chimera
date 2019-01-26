@@ -208,6 +208,8 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
     }
 
+    this->operationCounter = bopNum;
+
 
     // ::std::vector<Expr*> args;
     // //args->push_back(nab);
