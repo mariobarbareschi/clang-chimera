@@ -78,7 +78,13 @@ StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
     binaryOperator(hasOperatorName("+"),
       hasRHS(XHS_MATCHER("int", "rhs")),
       hasLHS(XHS_MATCHER("int", "lhs"))
-    ).bind("inax1_op")
+    ).bind("inax1_op"),
+
+    unless(
+          anyOf(
+            //hasAncestor(callExpr()), //uncomment to avoid mutation of input parameters of a function call
+            hasAncestor(arraySubscriptExpr()))
+    )
   );
 }
 
