@@ -82,7 +82,7 @@ StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
 
     unless(
           anyOf(
-            //hasAncestor(callExpr()), //uncomment to avoid mutation of input parameters of a function call
+            hasAncestor(callExpr()), //uncomment to avoid mutation of input parameters of a function call
             hasAncestor(arraySubscriptExpr()))
     )
   );
@@ -120,6 +120,18 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
         if( ((BinaryOperator*)rhs)->getOpcodeStr() == "+" ) return false;
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    /// Debug
+    Rewriter rw(*(node.SourceManager), node.Context->getLangOpts());
+    DEBUG(::llvm::dbgs() << "****************************************************"
+                            "****\nMatched operation:\n");
+    DEBUG(::llvm::dbgs() << "Operation: "
+                        << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
+                        << bop->getOpcodeStr() << "]\n");
+    DEBUG(::llvm::dbgs() << "LHS: " << rw.getRewrittenText(lhs->getSourceRange()) << "\n");
+    DEBUG(::llvm::dbgs() << "RHS: " << rw.getRewrittenText(rhs->getSourceRange()) << "\n");
+    //////////////////////////////////////////////////////////////////////////////////////////// 
+
     return true;
 }
 
@@ -134,16 +146,19 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
 
     // Retrieve binary operation, left and right hand side
-    const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-    const Expr *internalLhs = node.Nodes.getNodeAs<Expr>("lhs");
-    const Expr *internalRhs = node.Nodes.getNodeAs<Expr>("rhs");
-    const Expr *lhs = bop->getLHS()->IgnoreCasts();
-    const Expr *rhs = bop->getRHS()->IgnoreCasts();
+    BinaryOperator *bop   = (BinaryOperator*) node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
+    Expr *internalLhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("lhs");
+    Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
+    
+  do{
+    
+    Expr *lhs             = (Expr*)           bop->getLHS()->IgnoreCasts();
+    Expr *rhs             = (Expr*)           bop->getRHS()->IgnoreCasts();
 
     // Assert that binary operator and Xhs are not null
     assert (bop && "BinaryOperator is nullptr"); 
-    assert(internalLhs && "LHS is nullptr");
-    assert(internalRhs && "RHS is nullptr");
+    assert (lhs && "LHS is nullptr");
+    assert (rhs && "RHS is nullptr");
 
     // Create a global var before the function
     ::std::string nabId = "nab_" + ::std::to_string(bopNum++);
@@ -155,64 +170,79 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
     // Replace all the text of the binary operator with a function call
     ::std::string bopReplacement = "inax1_sum(" + nabId + ", " + lhsString + ", " + rhsString + ")";
-    rw.ReplaceText(bop->getSourceRange(), bopReplacement);   
-
+      
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
-    DEBUG(::llvm::dbgs() << "****************************************************"
+    DEBUG(::llvm::dbgs()  << "****************************************************"
                             "****\nDump binary operation:\n");
-    DEBUG(::llvm::dbgs() << "Operation: "
-                        << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-                        << bop->getOpcodeStr() << "]\n");
-    DEBUG(::llvm::dbgs() << "LHS: " << lhsString << "\n");
-    DEBUG(::llvm::dbgs() << "RHS: " << rhsString << "\n");
+    DEBUG(::llvm::dbgs()  << "Operation: "
+                          << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
+                          << bop->getOpcodeStr() << "]\n");
+    DEBUG(::llvm::dbgs()  << "LHS: " << lhsString << "\n");
+    DEBUG(::llvm::dbgs()  << "RHS: " << rhsString << "\n");
+    DEBUG(::llvm::dbgs()  << "Mutation in: " << bopReplacement << "\n");
     //////////////////////////////////////////////////////////////////////////////////////////// 
 
-    //Info for the report
-    bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(internalLhs);
-    bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(internalRhs);
-    ::std::string retVar = "NULL";
+    rw.ReplaceText(bop->getSourceRange(), bopReplacement); 
 
-    // Traverse the AST from the last add to the others 
-    BinaryOperator *bopParent = (BinaryOperator*)bop;
+    if( node.Context->getParents(*bop).empty() ) { break; }
 
-    while( 
-        ( bopParent != NULL ) &&
-        ( !(node.Context->getParents(*bopParent)).empty() ) && 
-        ( ( ((BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>()) ) != NULL) &&
-        ( ( ((BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>())->getOpcodeStr() ) == "+") 
-    ){ 
-        // Iterate if:
-        //      1) the node bopParent exists        AND
-        //      2) the node bopParent has a parent  AND
-        //      3) this parent of bopParent is a BinaryOperator (aka casting to BinaryOperator* succeded) AND
-        //      4) this parent of bopParent is a +
 
-        // Assign to bopParent its parent (for the next iteration)
-        bopParent = (BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>();
-
-        // Retrieve text information for the current operator
-        nabId = "nab_" + ::std::to_string(bopNum++);        
-        rhsString = rw.getRewrittenText(bopParent->getRHS()->getSourceRange());
-        lhsString = rw.getRewrittenText(bopParent->getLHS()->getSourceRange());
-
-        rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
-        bopReplacement = "inax1_sum(" + nabId + ", " + lhsString + ", " + rhsString + ")";
-
-        rw.ReplaceText(bopParent->getSourceRange(), bopReplacement);  
-
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        /// Debug
-        DEBUG(::llvm::dbgs() << "****************************************************"
-                                "****\nDump binary operation:\n");
-        DEBUG(::llvm::dbgs() << "Operation: "
-                            << rw.getRewrittenText(bopParent->getSourceRange()) << " ==> ["
-                            << bopParent->getOpcodeStr() << "]\n");
-        DEBUG(::llvm::dbgs() << "LHS: " << lhsString << "\n");
-        DEBUG(::llvm::dbgs() << "RHS: " << rhsString << "\n");
-        ////////////////////////////////////////////////////////////////////////////////////////////
-
+    Expr* parentNode = (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>());
+    if( parentNode == NULL ) bop = NULL;
+    else{
+      bop = (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>());
+      if( (bop->getOpcodeStr()) != "+" ) bop = NULL;
     }
+
+  } while(bop != NULL);
+    
+
+    // //Info for the report
+    // bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(internalLhs);
+    // bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(internalRhs);
+    // ::std::string retVar = "NULL";
+
+    // // Traverse the AST from the last add to the others 
+    // BinaryOperator *bopParent = (BinaryOperator*)bop;
+
+    // while( 
+    //     ( bopParent != NULL ) &&
+    //     ( !(node.Context->getParents(*bopParent)).empty() ) && 
+    //     ( ( ((BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>()) ) != NULL) &&
+    //     ( ( ((BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>())->getOpcodeStr() ) == "+") 
+    // ){ 
+    //     // Iterate if:
+    //     //      1) the node bopParent exists        AND
+    //     //      2) the node bopParent has a parent  AND
+    //     //      3) this parent of bopParent is a BinaryOperator (aka casting to BinaryOperator* succeded) AND
+    //     //      4) this parent of bopParent is a +
+
+    //     // Assign to bopParent its parent (for the next iteration)
+    //     bopParent = (BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>();
+
+    //     // Retrieve text information for the current operator
+    //     nabId = "nab_" + ::std::to_string(bopNum++);        
+    //     rhsString = rw.getRewrittenText(bopParent->getRHS()->getSourceRange());
+    //     lhsString = rw.getRewrittenText(bopParent->getLHS()->getSourceRange());
+
+    //     rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
+    //     bopReplacement = "inax1_sum(" + nabId + ", " + lhsString + ", " + rhsString + ")";
+
+    //     rw.ReplaceText(bopParent->getSourceRange(), bopReplacement);  
+
+    //     ////////////////////////////////////////////////////////////////////////////////////////////
+    //     /// Debug
+    //     DEBUG(::llvm::dbgs() << "****************************************************"
+    //                             "****\nDump binary operation:\n");
+    //     DEBUG(::llvm::dbgs() << "Operation: "
+    //                         << rw.getRewrittenText(bopParent->getSourceRange()) << " ==> ["
+    //                         << bopParent->getOpcodeStr() << "]\n");
+    //     DEBUG(::llvm::dbgs() << "LHS: " << lhsString << "\n");
+    //     DEBUG(::llvm::dbgs() << "RHS: " << rhsString << "\n");
+    //     ////////////////////////////////////////////////////////////////////////////////////////////
+
+    // }
 
     this->operationCounter = bopNum;
 
