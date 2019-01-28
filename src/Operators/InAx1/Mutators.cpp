@@ -75,7 +75,8 @@ StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
   // In order to retrieve the match, it is necessary to bind a string in this 
   // case "inax1_op".
   return stmt(
-    binaryOperator(hasOperatorName("+"),
+    binaryOperator(
+      hasOperatorName("+"),
       hasRHS(XHS_MATCHER("int", "rhs")),
       hasLHS(XHS_MATCHER("int", "lhs"))
     ).bind("inax1_op"),
@@ -102,8 +103,8 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
     // Second operation: extract lhs and rhs
     const Expr *internalLhs = node.Nodes.getNodeAs<Expr>("lhs");
     const Expr *internalRhs = node.Nodes.getNodeAs<Expr>("rhs");
-    const Expr *lhs = bop->getLHS()->IgnoreCasts();
-    const Expr *rhs = bop->getRHS()->IgnoreCasts();
+    const Expr *lhs = bop->getLHS()->IgnoreCasts()->IgnoreParens();
+    const Expr *rhs = bop->getRHS()->IgnoreCasts()->IgnoreParens();
     assert(internalLhs && "internalLhs is nullptr");
     assert(internalRhs && "internalRhs is nullptr");
 
@@ -185,15 +186,35 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
     rw.ReplaceText(bop->getSourceRange(), bopReplacement); 
 
-    if( node.Context->getParents(*bop).empty() ) { break; }
+    if( node.Context->getParents(*bop).empty() ) { 
+      DEBUG(::llvm::dbgs()  << "No more parents. Exiting\n");
+      break; 
+    }
 
 
-    Expr* parentNode = (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>());
-    if( parentNode == NULL ) bop = NULL;
+    if(    (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>())     == NULL ) {
+      if(    (ParenExpr*)(((node.Context->getParents(*bop))[0]).get<ParenExpr>())    ){
+        DEBUG(::llvm::dbgs()  << "Parens identified\n");
+        ParenExpr* parens = (ParenExpr*)(((node.Context->getParents(*bop))[0]).get<ParenExpr>());
+        bop = (BinaryOperator*)(((node.Context->getParents(*parens))[0]).get<BinaryOperator>());
+        if(bop == NULL){
+          std::string type = (node.Context->getParents(*parens))[0].getNodeKind().asStringRef();
+          DEBUG(::llvm::dbgs()  << type << "\n");
+        }
+      } else {
+        std::string type = (node.Context->getParents(*bop))[0].getNodeKind().asStringRef();
+        DEBUG(::llvm::dbgs()  << type << "\n");
+      }
+    }
     else{
       bop = (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>());
-      if( (bop->getOpcodeStr()) != "+" ) bop = NULL;
+      if( (bop->getOpcodeStr()) != "+" ){
+        DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "] Exiting\n");
+        bop = NULL;
+      }
     }
+
+    if(!bop) DEBUG(::llvm::dbgs()  << "aaaExiting\n");
 
   } while(bop != NULL);
     
