@@ -39,6 +39,12 @@ using namespace chimera;
 using namespace chimera::mutator;
 using namespace clang::ast_type_traits;
 
+#define PARENT_NODE_TYPE(res_matcher, child)                                   \
+  (res_matcher.Context->getParents(*child))[0].getNodeKind().asStringRef()
+
+#define GET_PARENT_NODE(res_matcher, child, casting_type)                      \
+  ((res_matcher.Context->getParents(*child))[0]).get<casting_type>()
+
 #define XHS_INTERNAL_MATCHER(id)                                               \
   ignoringParenImpCasts(expr().bind(                                           \
       id)) //< x hand side matcher without parenthesis and implicit casts
@@ -191,30 +197,39 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
       break; 
     }
 
-
-    if(    (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>())     == NULL ) {
-      if(    (ParenExpr*)(((node.Context->getParents(*bop))[0]).get<ParenExpr>())    ){
-        DEBUG(::llvm::dbgs()  << "Parens identified\n");
-        ParenExpr* parens = (ParenExpr*)(((node.Context->getParents(*bop))[0]).get<ParenExpr>());
-        bop = (BinaryOperator*)(((node.Context->getParents(*parens))[0]).get<BinaryOperator>());
-        if(bop == NULL){
-          std::string type = (node.Context->getParents(*parens))[0].getNodeKind().asStringRef();
-          DEBUG(::llvm::dbgs()  << type << "\n");
-        }
-      } else {
-        std::string type = (node.Context->getParents(*bop))[0].getNodeKind().asStringRef();
-        DEBUG(::llvm::dbgs()  << type << "\n");
+    std::string parentType = PARENT_NODE_TYPE(node, bop);
+    if(parentType == "BinaryOperator"){
+      DEBUG(::llvm::dbgs()  << "Parent is a BOP\n");
+      bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
+    } else if(parentType == "ParenExpr"){
+      ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
+      while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
+          parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
       }
+      DEBUG(::llvm::dbgs()  << "Parens skipped successfully.\n");
+      if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
+        DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parens content of type ["
+                              << PARENT_NODE_TYPE(node, parens)
+                              << "]. Exiting...\n");
+      }
+
+      bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
+
+    } else if(parentType == "FunDecl"){
+      DEBUG(::llvm::dbgs()  << "Function Declarion reached. Exiting...\n");
+      bop = NULL;
+
+    } else {
+      DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parent of type [" 
+                            << parentType 
+                            << "]. Exiting...\n");
+      bop = NULL;
     }
-    else{
-      bop = (BinaryOperator*)(((node.Context->getParents(*bop))[0]).get<BinaryOperator>());
-      if( (bop->getOpcodeStr()) != "+" ){
-        DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "] Exiting\n");
+
+    if( bop && (bop->getOpcodeStr()) != "+" ){
+        DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "]. Exiting...\n");
         bop = NULL;
       }
-    }
-
-    if(!bop) DEBUG(::llvm::dbgs()  << "aaaExiting\n");
 
   } while(bop != NULL);
     
