@@ -1,5 +1,5 @@
 # Clang-Chimera
-[![Build Status](https://travis-ci.org/andreaaletto/clang-chimera.svg?branch=master)](https://travis-ci.org/andreaaletto/clang-chimera)
+[![Build Status](https://travis-ci.org/andreaaletto/clang-chimera.svg?branch=master)](https://travis-ci.org/andreaaletto/clang-chimera) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) 
 ------------
 Clang-Chimera is a framework to easily develop operators to automatically modify C/C++ codes through code patterns identification.
 
