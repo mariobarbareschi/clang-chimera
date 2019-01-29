@@ -175,7 +175,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
     ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
 
-    // Replace all the text of the binary operator with a function call
+    // Form the replacing string
     ::std::string bopReplacement = "inax1_sum(" + nabId + ", " + lhsString + ", " + rhsString + ")";
       
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -190,36 +190,48 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     DEBUG(::llvm::dbgs()  << "Mutation in: " << bopReplacement << "\n");
     //////////////////////////////////////////////////////////////////////////////////////////// 
 
+    // Replace all the text of the binary operator with a function call
     rw.ReplaceText(bop->getSourceRange(), bopReplacement); 
 
+    // Stop if the current node (bop) has no parents
     if( node.Context->getParents(*bop).empty() ) { 
       DEBUG(::llvm::dbgs()  << "No more parents. Exiting\n");
       break; 
     }
 
+    // Retrieve parent type
     std::string parentType = PARENT_NODE_TYPE(node, bop);
+
     if(parentType == "BinaryOperator"){
+      // If the parent is a BinaryOperator then assign to bop its parent
       DEBUG(::llvm::dbgs()  << "Parent is a BOP\n");
       bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
+
     } else if(parentType == "ParenExpr"){
+      // If the parent is a parenthesis node then retrieve it and traverse up the ast
+      // till the next non-parenthesis node. 
       ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
       while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
           parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
       }
       DEBUG(::llvm::dbgs()  << "Parens skipped successfully.\n");
+
+      // If the content of parenthesis is not a BinaryOperator then exit else assign
+      // parenthesis content to bop
       if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
         DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parens content of type ["
                               << PARENT_NODE_TYPE(node, parens)
                               << "]. Exiting...\n");
-      }
+        bop = NULL;
+      } else bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
 
-      bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
-
-    } else if(parentType == "FunDecl"){
-      DEBUG(::llvm::dbgs()  << "Function Declarion reached. Exiting...\n");
+    } else if((parentType == "FunDecl") || (parentType == "VarDecl")){
+      // If the parent is a FunDecl or a VarDecl then exit
+      DEBUG(::llvm::dbgs()  << "Function o Variable Declarion reached. Exiting...\n");
       bop = NULL;
 
     } else {
+      // If the parent is not one of the previous IFs, then exit and print the unexpected type
       DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parent of type [" 
                             << parentType 
                             << "]. Exiting...\n");
@@ -227,6 +239,8 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     }
 
     if( bop && (bop->getOpcodeStr()) != "+" ){
+        // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
+        // and it's not a +, then exit 
         DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "]. Exiting...\n");
         bop = NULL;
       }
