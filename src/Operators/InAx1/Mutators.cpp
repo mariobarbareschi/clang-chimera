@@ -207,7 +207,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     mutationInfo.retOp = "NULL";
 
     // Form the replacing string
-    ::std::string bopReplacement = "inax1_sum(" + nabId + ", " + lhsString + ", " + rhsString + ")";
+    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ")";
       
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
