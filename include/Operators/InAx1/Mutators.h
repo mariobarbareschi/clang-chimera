@@ -46,8 +46,6 @@ class MutatorInAx1 : public chimera::mutator::Mutator
       struct MutationInfo {
         ::std::string nabId;  ///< Operation Identifier
         unsigned line;  ///< Occurrence line
-        ::std::string opRetTy;  ///< Operation Return Type
-        ::clang::BinaryOperatorKind opTy;  ///< Operation Type
         ::std::string op1;  ///< Operand 1
         ::clang::BinaryOperatorKind op1OpTy;  ///< It is != NoOp if operand 1 is a binary operation
         ::std::string op2;  ///< Operand 2
