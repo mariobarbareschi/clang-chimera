@@ -139,13 +139,17 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
     DEBUG(::llvm::dbgs() << "RHS: " << rw.getRewrittenText(rhs->getSourceRange()) << "\n");
     //////////////////////////////////////////////////////////////////////////////////////////// 
 
+    if(rw.getRewrittenText(lhs->getSourceRange()) == "") return false;
+    if(rw.getRewrittenText(rhs->getSourceRange()) == "") return false;
+
     return true;
 }
 
 Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
 
-    // Retrieve a pointer to function declaration to insert global variables befere it
+    // Retrieve a pointer to function declaration (or template function declaration) to insert global variables before it
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
+    const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
 
     // Set the operation number
     unsigned int bopNum = this->operationCounter++;
@@ -172,7 +176,11 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
     // Create a global var before the function
     ::std::string nabId = "nab_" + ::std::to_string(bopNum++);
-    rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
+
+    if(templDecl != NULL) 
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
+    else                  
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
 
     // Retrieve the name of the operands
     ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
