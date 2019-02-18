@@ -63,7 +63,7 @@ using namespace clang::ast_type_traits;
 ///        In Mutator.h there is code template snippet that should be fine for
 ///        all the majority of the cases.
 bool chimera::loopbreaker::MutatorLoopBreaker::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
-  const ForStmt *forStmt = node.Nodes.getNodeAs<ForStmt>("inner_for_stmt");
+  const ForStmt *forStmt = node.Nodes.getNodeAs<ForStmt>("outer_for_stmt");
   assert(forStmt && "ForStmt is nullptr");
   if (forStmt != nullptr) {
     dynNode = DynTypedNode::create(*forStmt);
@@ -77,8 +77,8 @@ bool chimera::loopbreaker::MutatorLoopBreaker::getMatchedNode(const NodeType &no
 StatementMatcher chimera::loopbreaker::MutatorLoopBreaker::getStatementMatcher() {
   return stmt(
     forStmt(
-      unless(hasDescendant(forStmt()))
-    ).bind("inner_for_stmt")
+      unless(hasAncestor(forStmt()))
+    ).bind("outer_for_stmt")
   );
 }
 
@@ -93,7 +93,7 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
     const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
 
-    // const ForStmt *innerFor = node.Nodes.getNodeAs<ForStmt>("inner_for_stmt");
+    // const ForStmt *innerFor = node.Nodes.getNodeAs<ForStmt>("outer_for_stmt");
 
     // if(innerFor) {
     //   DEBUG(::llvm::dbgs()  << "\n****************************************************\n");
@@ -109,13 +109,8 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
     Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
 
     // Retrieve binary operation, left and right hand side
-    ForStmt *forStmt   = (ForStmt*) node.Nodes.getNodeAs<ForStmt>("inner_for_stmt");
+    ForStmt *forStmt   = (ForStmt*) node.Nodes.getNodeAs<ForStmt>("outer_for_stmt");
     Expr *cond     = (Expr*) forStmt->getCond();
-    
-  do{
-
-    // Assert that binary operator and Xhs are not null
-    assert (forStmt && "ForStatement is nullptr"); 
 
     // Create a global var before the function
     ::std::string baseId = "base_" + ::std::to_string(bopNum++);
@@ -125,10 +120,12 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
     else                  
       rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + baseId + " = 8;\n");
 
+    // Assert that binary operator and Xhs are not null
+    assert (forStmt && "Outer ForStatement is nullptr"); 
+
     // Retrieve the condition
     ::std::string condString = rw.getRewrittenText(cond->getSourceRange());
-    ::std::string condVariable = condString.substr(0, condString.find("<"));
-    DEBUG(::llvm::dbgs()  <<"\n\n\n\n" << condVariable <<"\n\n\n\n" );
+    ::std::string condVariableString = condString.substr(0, condString.find("<"));
 
     // Start collecting information for the report (everything but the return variable):
     MutatorLoopBreaker::MutationInfo mutationInfo;
@@ -136,95 +133,59 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
     // * Operation Identifier
     mutationInfo.baseId = baseId;
 
+    // Save info into the report
+    this->mutationsInfo.push_back(mutationInfo);
+
     // * Line location
     FullSourceLoc loc(forStmt->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
 
     // Form the replacing string
-    ::std::string condReplacement = condVariable + " < " + baseId; 
+    ::std::string condReplacement = condVariableString + " < " + baseId; 
       
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    /// Debug
-    // DEBUG(::llvm::dbgs()  << "****************************************************"
-    //                         "****\nDump binary operation:\n");
-    // DEBUG(::llvm::dbgs()  << "Operation: "
-    //                       << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-    //                       << bop->getOpcodeStr() << "]\n");
-    // DEBUG(::llvm::dbgs()  << "LHS: " << lhsString << "\n");
-    // DEBUG(::llvm::dbgs()  << "RHS: " << rhsString << "\n");
-    // DEBUG(::llvm::dbgs()  << "Mutation in: " << bopReplacement << "\n");
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Debug
+    DEBUG(::llvm::dbgs()  << "****************************************************"
+                            "****\nDump for loop:\n");
+    DEBUG(::llvm::dbgs()  << "Statement: "
+                          << rw.getRewrittenText(forStmt->getSourceRange()) << "]\n");
+    DEBUG(::llvm::dbgs()  << "Condition: "            << condString << "\n");
+    DEBUG(::llvm::dbgs()  << "Condition Variable: "   << condVariableString << "\n");
+    DEBUG(::llvm::dbgs()  << "Mutate condition in: "  << condReplacement << "\n");
+    DEBUG(::llvm::dbgs()  << "****************************************************\n\n");
 
-    //////////////////////////////////////////////////////////////////////////////////////////// 
+    ////////////////////////////////////////////////////////////////////////////////////////// 
 
     // Replace all the text of the binary operator with a function call
     rw.ReplaceText(cond->getSourceRange(), condReplacement); 
 
     // Stop if the current node (bop) has no parents
-    if( node.Context->getParents(*forStmt).empty() ) { 
-      DEBUG(::llvm::dbgs()  << "No more parents. Exiting\n");
-      break; 
-    } else { break; }
+    assert( ((ForStmt*)forStmt->getBody()) && "No more for statement children.");
 
-    // Retrieve parent type
-    // std::string parentType = PARENT_NODE_TYPE(node, bop);
+    forStmt = (ForStmt*)forStmt->getBody()->IgnoreContainers();
+    cond = (Expr*) forStmt->getCond();
 
-    // if(parentType == "BinaryOperator"){
-    //   // If the parent is a BinaryOperator then assign to bop its parent
-    //   DEBUG(::llvm::dbgs()  << "Parent is a BOP\n");
-    //   bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
-
-    // } else if(parentType == "ParenExpr"){
-    //   // If the parent is a parenthesis node then retrieve it and traverse up the ast
-    //   // till the next non-parenthesis node. 
-    //   ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
-    //   while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
-    //       parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
-    //   }
-    //   DEBUG(::llvm::dbgs()  << "Parens skipped successfully.\n");
-
-    //   // If the content of parenthesis is not a BinaryOperator then exit else assign
-    //   // parenthesis content to bop
-    //   if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
-    //     DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parens content of type ["
-    //                           << PARENT_NODE_TYPE(node, parens)
-    //                           << "]. Exiting...\n");
-    //     bop = NULL;
-    //   } else bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
-
-    // } else if((parentType == "FunDecl") || (parentType == "VarDecl")){
-    //   // If the parent is a FunDecl or a VarDecl then exit
-    //   DEBUG(::llvm::dbgs()  << "Function o Variable Declarion reached. Exiting...\n");
-    //   bop = NULL;
-
-    // } else {
-    //   // If the parent is not one of the previous IFs, then exit and print the unexpected type
-    //   DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parent of type [" 
-    //                         << parentType 
-    //                         << "]. Exiting...\n");
-    //   bop = NULL;
-    // }
-
-    // if( bop && (bop->getOpcodeStr()) == "=" ){
-    //   // Get return variable name, if exists
-      
-    //   // Check if it is a DeclRef expression
-    //   if (::llvm::isa<DeclRefExpr>(bop->getLHS())) {
-    //     mutationInfo.retOp = ((const DeclRefExpr *)(bop->getLHS()))
-    //                 ->getNameInfo()
-    //                 .getName()
-    //                 .getAsString();
-    //   }
-        
-    //   // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
-    //   // and it's a =, then exit 
-    //   DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "]. Exiting...\n");
-    //   bop = NULL;
-    // }
-
-    // Save info into the report
-    this->mutationsInfo.push_back(mutationInfo);
-  } while(true);
+    ::std::string innerCondString = rw.getRewrittenText(cond->getSourceRange());
+    ::std::string innerCondVariableString = innerCondString.substr(0, innerCondString.find("<"));
+  
+    condReplacement = innerCondVariableString + " < " + baseId + " - " + condVariableString; 
     
+  
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Debug
+    DEBUG(::llvm::dbgs()  << "****************************************************"
+                            "****\nDump inner for loop:\n");
+    DEBUG(::llvm::dbgs()  << "Statement: "
+                          << rw.getRewrittenText(forStmt->getSourceRange()) << "]\n");
+    DEBUG(::llvm::dbgs()  << "Condition: "            << innerCondString << "\n");
+    DEBUG(::llvm::dbgs()  << "Condition Variable: "   << innerCondVariableString << "\n");
+    DEBUG(::llvm::dbgs()  << "Mutate condition in: "  << condReplacement << "\n");
+    DEBUG(::llvm::dbgs()  << "****************************************************\n\n");
+
+    ////////////////////////////////////////////////////////////////////////////////////////// 
+
+    // Replace all the text of the binary operator with a function call
+    rw.ReplaceText(cond->getSourceRange(), condReplacement); 
 
 
 
@@ -278,8 +239,7 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
 
     // }
 
-    this->operationCounter = bopNum; //////////////////////////////////////*******************
-
+    this->operationCounter = bopNum;
 
     // ::std::vector<Expr*> args;
     // //args->push_back(nab);
