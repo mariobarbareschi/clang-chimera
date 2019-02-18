@@ -19,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 /// \file Operators.cpp
-/// \author Federico Iannucci
+/// \author Andrea Aletto
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 

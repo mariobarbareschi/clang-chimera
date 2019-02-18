@@ -1,7 +1,7 @@
 //===- Operators.h ----------------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2015, 2016  Federico Iannucci (fed.iannucci@gmail.com)
-// 
+//
 //  This file is part of Clang-Chimera.
 //
 //  Clang-Chimera is free software: you can redistribute it and/or modify
@@ -19,22 +19,27 @@
 //
 //===----------------------------------------------------------------------===//
 /// \file Operators.h
-/// \author Federico Iannucci 
-/// \brief This file makes visible Mutation Operators
+/// \author Andrea Aletto
+/// \brief Declaration of loop breaker operator
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_OPERATORS_H
-#define INCLUDE_OPERATORS_OPERATORS_H
+#ifndef INCLUDE_OPERATORS_LOOPBREAKER_OPERATORS_H
+#define INCLUDE_OPERATORS_LOOPBREAKER_OPERATORS_H
 
-#include "Operators/Examples/Operators.h"
-#include "Operators/LoopFirst/Operator.h"
-#include "Operators/LoopSecond/Operator.h"
-#include "Operators/FLAP/Operator.h"
-#include "Operators/VPA/Operator.h"
-#include "Operators/VPA_Native/Operator.h"
-#include "Operators/InAx1/Operators.h"
-#include "Operators/LoopBreaker/Operators.h"
+#include "Core/MutationOperator.h"
 
+namespace chimera
+{
+namespace loopbreaker
+{
 
+/// \addtogroup OPERATORS_SAMPLE_OPERATORS Sample Mutation Operators
+/// \{
+/// @brief Create and return the ROR Operator
+::std::unique_ptr<::chimera::m_operator::MutationOperator> getLoopBreakerOperator();
+/// \}
+} // end namespace chimera::loopbreaker
+} // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_OPERATORS_H */
+#endif /* INCLUDE_OPERATORS_LOOPBREAKER_OPERATORS_H */
+

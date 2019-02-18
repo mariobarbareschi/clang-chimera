@@ -20,17 +20,17 @@
 //===----------------------------------------------------------------------===//
 /// \file Mutators.h
 /// \author Andrea Aletto
-/// \brief This file contains sample mutators
+/// \brief Mutator declaration for loop breaker
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_INAX1_MUTATORS_H
-#define INCLUDE_OPERATORS_INAX1_MUTATORS_H
+#ifndef INCLUDE_OPERATORS_LOOPBREAKER_MUTATORS_H
+#define INCLUDE_OPERATORS_LOOPBREAKER_MUTATORS_H
 
 #include "Core/Mutator.h"
 
 namespace chimera
 {
-namespace inax1
+namespace loopbreaker
 {
 
 /// \addtogroup OPERATORS_SAMPLE_MUTATORS Sample Mutators
@@ -40,7 +40,7 @@ namespace inax1
  * @brief This mutator matches the binary relational operator >, and replaces it with
  *        others (at the moment < and <=).
  */
-class MutatorInAx1 : public chimera::mutator::Mutator
+class MutatorLoopBreaker : public chimera::mutator::Mutator
 {
     ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
@@ -56,10 +56,10 @@ public:
     /**
      * @brief Constuctor
      */
-    MutatorInAx1()
+    MutatorLoopBreaker()
         : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
-                    "mutator_inax1", // String identifier
-                    "Replaces exact sum with inexact sum based on InAx1 cell", // Description
+                    "mutator_loopbreaker", // String identifier
+                    "Breakes a nested for loop by a global parameter", // Description
                     1, // One mutation type
                     true
                   ) {}
@@ -78,7 +78,7 @@ private:
 };
 
 /// \}
-} // end namespace chimera::inax1
+} // end namespace chimera::loopbreaker
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_INAX1_MUTATORS_H */
+#endif /* INCLUDE_OPERATORS_LOOPBREAKER_MUTATORS_H */

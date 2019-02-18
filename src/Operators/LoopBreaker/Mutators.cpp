@@ -20,10 +20,10 @@
 //===----------------------------------------------------------------------===//
 /// \file Mutators.cpp
 /// \author Andrea Aletto
-/// \brief This file contains sample mutators
+/// \brief Loopbreaker mutator implementation
 //===----------------------------------------------------------------------===//
 
-#include "Operators/InAx1/Mutators.h"
+#include "Operators/LoopBreaker/Mutators.h"
 #include "llvm/Support/ErrorHandling.h"
 
 #include "Log.h"
@@ -31,7 +31,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include <iostream>
 
-#define DEBUG_TYPE "mutator_inax1"
+#define DEBUG_TYPE "mutator_loopbreaker"
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -62,7 +62,7 @@ using namespace clang::ast_type_traits;
 /// \brief It is used to retrieve the node, it hides the binding string.
 ///        In Mutator.h there is code template snippet that should be fine for
 ///        all the majority of the cases.
-bool chimera::inax1::MutatorInAx1::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
+bool chimera::loopbreaker::MutatorLoopBreaker::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
   const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
   assert(bop && "BinaryOperator is nullptr");
   if (bop != nullptr) {
@@ -75,7 +75,7 @@ bool chimera::inax1::MutatorInAx1::getMatchedNode(const NodeType &node, DynTyped
 /// \brief  This method implements the coarse grained matching rules,
 ///         returning the statement matcher to match the binary
 ///         operation
-StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
+StatementMatcher chimera::loopbreaker::MutatorLoopBreaker::getStatementMatcher() {
   // It has to match a binary operation with a specific operator name (+) and 
   // specific operands (int, int).
   // In order to retrieve the match, it is necessary to bind a string in this 
@@ -100,7 +100,7 @@ StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
 ///         to be the last "+"" operator of a chain of adds.
 ///         In other words we want that for a statement of "x+y+z+t" the matched
 ///         node has to be the last + (that one between z and t).
-bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
+bool chimera::loopbreaker::MutatorLoopBreaker::match(const NodeType &node) {
 
     // First operation: Retrieve the node
     const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
@@ -145,7 +145,7 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
     return true;
 }
 
-Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
+Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
 
     // Retrieve a pointer to function declaration (or template function declaration) to insert global variables before it
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
@@ -187,7 +187,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
 
     // Start collecting information for the report (everything but the return variable):
-    MutatorInAx1::MutationInfo mutationInfo;
+    MutatorLoopBreaker::MutationInfo mutationInfo;
 
     // * Operation Identifier
     mutationInfo.nabId = nabId;
@@ -376,7 +376,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
 }
 
-void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
+void chimera::loopbreaker::MutatorLoopBreaker::onCreatedMutant(const ::std::string &mDir) {
   // Create a specific report inside the mutant directory
   ::std::error_code error;
   ::llvm::raw_fd_ostream report(mDir + "inax1_report.csv", error,

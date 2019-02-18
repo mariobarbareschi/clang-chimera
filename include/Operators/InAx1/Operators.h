@@ -19,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 /// \file Operators.h
-/// \author Federico Iannucci
+/// \author Andrea Aletto
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
