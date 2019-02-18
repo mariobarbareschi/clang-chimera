@@ -44,7 +44,7 @@ class MutatorLoopBreaker : public chimera::mutator::Mutator
 {
     ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
-        ::std::string nabId;  ///< Operation Identifier
+        ::std::string baseId;  ///< Operation Identifier
         unsigned line;  ///< Occurrence line
         ::std::string op1;  ///< Operand 1
         ::clang::BinaryOperatorKind op1OpTy;  ///< It is != NoOp if operand 1 is a binary operation

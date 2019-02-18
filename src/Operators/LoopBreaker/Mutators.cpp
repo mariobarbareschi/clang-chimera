@@ -63,85 +63,27 @@ using namespace clang::ast_type_traits;
 ///        In Mutator.h there is code template snippet that should be fine for
 ///        all the majority of the cases.
 bool chimera::loopbreaker::MutatorLoopBreaker::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
-  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-  assert(bop && "BinaryOperator is nullptr");
-  if (bop != nullptr) {
-    dynNode = DynTypedNode::create(*bop);
+  const ForStmt *forStmt = node.Nodes.getNodeAs<ForStmt>("inner_for_stmt");
+  assert(forStmt && "ForStmt is nullptr");
+  if (forStmt != nullptr) {
+    dynNode = DynTypedNode::create(*forStmt);
     return true;
   } else
     return false;
 }
 
 /// \brief  This method implements the coarse grained matching rules,
-///         returning the statement matcher to match the binary
-///         operation
+///         returning the statement matcher to match the inner for loop
 StatementMatcher chimera::loopbreaker::MutatorLoopBreaker::getStatementMatcher() {
-  // It has to match a binary operation with a specific operator name (+) and 
-  // specific operands (int, int).
-  // In order to retrieve the match, it is necessary to bind a string in this 
-  // case "inax1_op".
   return stmt(
-    binaryOperator(
-      hasOperatorName("+"),
-      hasRHS(XHS_MATCHER("int", "rhs")),
-      hasLHS(XHS_MATCHER("int", "lhs"))
-    ).bind("inax1_op"),
-
-    unless(
-          anyOf(
-            hasAncestor(callExpr()), //uncomment to avoid mutation of input parameters of a function call
-            hasAncestor(arraySubscriptExpr()))
-    )
+    forStmt(
+      unless(hasDescendant(forStmt()))
+    ).bind("inner_for_stmt")
   );
 }
 
-/// \brief  This method implements the fine grained matching rules, because it is
-///         not possible in an easy way to specify that the node matched has
-///         to be the last "+"" operator of a chain of adds.
-///         In other words we want that for a statement of "x+y+z+t" the matched
-///         node has to be the last + (that one between z and t).
+/// \brief  Coarse grain is enough to identify the inner for loop
 bool chimera::loopbreaker::MutatorLoopBreaker::match(const NodeType &node) {
-
-    // First operation: Retrieve the node
-    const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-    assert(bop && "BinaryOperator is nullptr");
-
-    // Second operation: extract lhs and rhs
-    const Expr *internalLhs = node.Nodes.getNodeAs<Expr>("lhs");
-    const Expr *internalRhs = node.Nodes.getNodeAs<Expr>("rhs");
-    const Expr *lhs = bop->getLHS()->IgnoreCasts()->IgnoreParens();
-    const Expr *rhs = bop->getRHS()->IgnoreCasts()->IgnoreParens();
-    assert(internalLhs && "internalLhs is nullptr");
-    assert(internalRhs && "internalRhs is nullptr");
-
-    //FIXME: check that internalXhs is not a + and not only a binary operator
-    bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(lhs);
-    bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(rhs);
-
-    // Third operation: discard match if Xhs is a +
-    if (isLhsBinaryOp){
-        if( ((BinaryOperator*)lhs)->getOpcodeStr() == "+" ) return false;
-    }
-    
-    if (isRhsBinaryOp){
-        if( ((BinaryOperator*)rhs)->getOpcodeStr() == "+" ) return false;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    /// Debug
-    Rewriter rw(*(node.SourceManager), node.Context->getLangOpts());
-    DEBUG(::llvm::dbgs() << "****************************************************"
-                            "****\nMatched operation:\n");
-    DEBUG(::llvm::dbgs() << "Operation: "
-                        << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-                        << bop->getOpcodeStr() << "]\n");
-    DEBUG(::llvm::dbgs() << "LHS: " << rw.getRewrittenText(lhs->getSourceRange()) << "\n");
-    DEBUG(::llvm::dbgs() << "RHS: " << rw.getRewrittenText(rhs->getSourceRange()) << "\n");
-    //////////////////////////////////////////////////////////////////////////////////////////// 
-
-    if(rw.getRewrittenText(lhs->getSourceRange()) == "") return false;
-    if(rw.getRewrittenText(rhs->getSourceRange()) == "") return false;
-
     return true;
 }
 
@@ -151,154 +93,144 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
     const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
 
+    // const ForStmt *innerFor = node.Nodes.getNodeAs<ForStmt>("inner_for_stmt");
+
+    // if(innerFor) {
+    //   DEBUG(::llvm::dbgs()  << "\n****************************************************\n");
+    //   const Expr* cond = innerFor->getCond();
+    //   std::string condString = rw.getRewrittenText(cond->getSourceRange());
+    //   DEBUG(::llvm::dbgs()  << condString );
+    //   DEBUG(::llvm::dbgs()  << "\n****************************************************\n");
+    // }
+
     // Set the operation number
     unsigned int bopNum = this->operationCounter++;
     // Local rewriter to hold the original code
     Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
 
     // Retrieve binary operation, left and right hand side
-    BinaryOperator *bop   = (BinaryOperator*) node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-    Expr *internalLhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("lhs");
-    Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
+    ForStmt *forStmt   = (ForStmt*) node.Nodes.getNodeAs<ForStmt>("inner_for_stmt");
+    Expr *cond     = (Expr*) forStmt->getCond();
     
   do{
-    
-    Expr *lhs             = (Expr*)           bop->getLHS()->IgnoreCasts();
-    Expr *rhs             = (Expr*)           bop->getRHS()->IgnoreCasts();
-
-    bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(lhs);
-    bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(rhs);
 
     // Assert that binary operator and Xhs are not null
-    assert (bop && "BinaryOperator is nullptr"); 
-    assert (lhs && "LHS is nullptr");
-    assert (rhs && "RHS is nullptr");
+    assert (forStmt && "ForStatement is nullptr"); 
 
     // Create a global var before the function
-    ::std::string nabId = "nab_" + ::std::to_string(bopNum++);
+    ::std::string baseId = "base_" + ::std::to_string(bopNum++);
 
     if(templDecl != NULL) 
-      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "int " + baseId + " = 8;\n");
     else                  
-      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + baseId + " = 8;\n");
 
-    // Retrieve the name of the operands
-    ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
-    ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
+    // Retrieve the condition
+    ::std::string condString = rw.getRewrittenText(cond->getSourceRange());
+    ::std::string condVariable = condString.substr(0, condString.find("<"));
+    DEBUG(::llvm::dbgs()  <<"\n\n\n\n" << condVariable <<"\n\n\n\n" );
 
     // Start collecting information for the report (everything but the return variable):
     MutatorLoopBreaker::MutationInfo mutationInfo;
 
     // * Operation Identifier
-    mutationInfo.nabId = nabId;
+    mutationInfo.baseId = baseId;
 
     // * Line location
-    FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
+    FullSourceLoc loc(forStmt->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
 
-    // * Information about operands:
-    // ** LHS
-    mutationInfo.op1 = lhsString;
-    mutationInfo.op1OpTy = NoOp;
-    if (isLhsBinaryOp) {
-      mutationInfo.op1OpTy = ((const BinaryOperator *)internalLhs)->getOpcode();
-    }
-
-    // ** RHS
-    mutationInfo.op2 = rhsString;
-    mutationInfo.op2OpTy = NoOp;
-    if (isRhsBinaryOp) {
-      mutationInfo.op2OpTy = ((const BinaryOperator *)internalRhs)->getOpcode();
-    }
-
-    // ** Return variable (placeholder)
-    mutationInfo.retOp = "NULL";
-
     // Form the replacing string
-    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ")";
+    ::std::string condReplacement = condVariable + " < " + baseId; 
       
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
-    DEBUG(::llvm::dbgs()  << "****************************************************"
-                            "****\nDump binary operation:\n");
-    DEBUG(::llvm::dbgs()  << "Operation: "
-                          << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-                          << bop->getOpcodeStr() << "]\n");
-    DEBUG(::llvm::dbgs()  << "LHS: " << lhsString << "\n");
-    DEBUG(::llvm::dbgs()  << "RHS: " << rhsString << "\n");
-    DEBUG(::llvm::dbgs()  << "Mutation in: " << bopReplacement << "\n");
+    // DEBUG(::llvm::dbgs()  << "****************************************************"
+    //                         "****\nDump binary operation:\n");
+    // DEBUG(::llvm::dbgs()  << "Operation: "
+    //                       << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
+    //                       << bop->getOpcodeStr() << "]\n");
+    // DEBUG(::llvm::dbgs()  << "LHS: " << lhsString << "\n");
+    // DEBUG(::llvm::dbgs()  << "RHS: " << rhsString << "\n");
+    // DEBUG(::llvm::dbgs()  << "Mutation in: " << bopReplacement << "\n");
 
     //////////////////////////////////////////////////////////////////////////////////////////// 
 
     // Replace all the text of the binary operator with a function call
-    rw.ReplaceText(bop->getSourceRange(), bopReplacement); 
+    rw.ReplaceText(cond->getSourceRange(), condReplacement); 
 
     // Stop if the current node (bop) has no parents
-    if( node.Context->getParents(*bop).empty() ) { 
+    if( node.Context->getParents(*forStmt).empty() ) { 
       DEBUG(::llvm::dbgs()  << "No more parents. Exiting\n");
       break; 
-    }
+    } else { break; }
 
     // Retrieve parent type
-    std::string parentType = PARENT_NODE_TYPE(node, bop);
+    // std::string parentType = PARENT_NODE_TYPE(node, bop);
 
-    if(parentType == "BinaryOperator"){
-      // If the parent is a BinaryOperator then assign to bop its parent
-      DEBUG(::llvm::dbgs()  << "Parent is a BOP\n");
-      bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
+    // if(parentType == "BinaryOperator"){
+    //   // If the parent is a BinaryOperator then assign to bop its parent
+    //   DEBUG(::llvm::dbgs()  << "Parent is a BOP\n");
+    //   bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
 
-    } else if(parentType == "ParenExpr"){
-      // If the parent is a parenthesis node then retrieve it and traverse up the ast
-      // till the next non-parenthesis node. 
-      ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
-      while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
-          parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
-      }
-      DEBUG(::llvm::dbgs()  << "Parens skipped successfully.\n");
+    // } else if(parentType == "ParenExpr"){
+    //   // If the parent is a parenthesis node then retrieve it and traverse up the ast
+    //   // till the next non-parenthesis node. 
+    //   ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
+    //   while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
+    //       parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
+    //   }
+    //   DEBUG(::llvm::dbgs()  << "Parens skipped successfully.\n");
 
-      // If the content of parenthesis is not a BinaryOperator then exit else assign
-      // parenthesis content to bop
-      if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
-        DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parens content of type ["
-                              << PARENT_NODE_TYPE(node, parens)
-                              << "]. Exiting...\n");
-        bop = NULL;
-      } else bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
+    //   // If the content of parenthesis is not a BinaryOperator then exit else assign
+    //   // parenthesis content to bop
+    //   if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
+    //     DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parens content of type ["
+    //                           << PARENT_NODE_TYPE(node, parens)
+    //                           << "]. Exiting...\n");
+    //     bop = NULL;
+    //   } else bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
 
-    } else if((parentType == "FunDecl") || (parentType == "VarDecl")){
-      // If the parent is a FunDecl or a VarDecl then exit
-      DEBUG(::llvm::dbgs()  << "Function o Variable Declarion reached. Exiting...\n");
-      bop = NULL;
+    // } else if((parentType == "FunDecl") || (parentType == "VarDecl")){
+    //   // If the parent is a FunDecl or a VarDecl then exit
+    //   DEBUG(::llvm::dbgs()  << "Function o Variable Declarion reached. Exiting...\n");
+    //   bop = NULL;
 
-    } else {
-      // If the parent is not one of the previous IFs, then exit and print the unexpected type
-      DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parent of type [" 
-                            << parentType 
-                            << "]. Exiting...\n");
-      bop = NULL;
-    }
+    // } else {
+    //   // If the parent is not one of the previous IFs, then exit and print the unexpected type
+    //   DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parent of type [" 
+    //                         << parentType 
+    //                         << "]. Exiting...\n");
+    //   bop = NULL;
+    // }
 
-    if( bop && (bop->getOpcodeStr()) == "=" ){
-      // Get return variable name, if exists
+    // if( bop && (bop->getOpcodeStr()) == "=" ){
+    //   // Get return variable name, if exists
       
-      // Check if it is a DeclRef expression
-      if (::llvm::isa<DeclRefExpr>(bop->getLHS())) {
-        mutationInfo.retOp = ((const DeclRefExpr *)(bop->getLHS()))
-                    ->getNameInfo()
-                    .getName()
-                    .getAsString();
-      }
+    //   // Check if it is a DeclRef expression
+    //   if (::llvm::isa<DeclRefExpr>(bop->getLHS())) {
+    //     mutationInfo.retOp = ((const DeclRefExpr *)(bop->getLHS()))
+    //                 ->getNameInfo()
+    //                 .getName()
+    //                 .getAsString();
+    //   }
         
-      // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
-      // and it's a =, then exit 
-      DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "]. Exiting...\n");
-      bop = NULL;
-    }
+    //   // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
+    //   // and it's a =, then exit 
+    //   DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "]. Exiting...\n");
+    //   bop = NULL;
+    // }
 
     // Save info into the report
     this->mutationsInfo.push_back(mutationInfo);
-  } while(bop != NULL);
+  } while(true);
     
+
+
+
+
+
+
 
     // //Info for the report
     // bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(internalLhs);
@@ -346,7 +278,7 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
 
     // }
 
-    this->operationCounter = bopNum;
+    this->operationCounter = bopNum; //////////////////////////////////////*******************
 
 
     // ::std::vector<Expr*> args;
@@ -376,119 +308,119 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
 
 }
 
-void chimera::loopbreaker::MutatorLoopBreaker::onCreatedMutant(const ::std::string &mDir) {
-  // Create a specific report inside the mutant directory
-  ::std::error_code error;
-  ::llvm::raw_fd_ostream report(mDir + "inax1_report.csv", error,
-                                ::llvm::sys::fs::OpenFlags::F_Text);
-  // Resolve operand/operation information, substituting the binary operator
-  // with the code of the I type operation
-  // This operation, due to the unknown order of processing, has to be performed
-  // here
-  // Make a copy to always read the old operand string
-  // FIXME: Check also operation type -> store binaryOperator pointer to
-  // compare?
-  ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
-  // for (auto &mI : cMutationsInfo) {
-  //   if (mI.op1OpTy != NoOp) {
-  //     // Operand 1 is a binary operation
-  //     // Search in all info
-  //     for (const auto &mII : this->mutationsInfo) {
-  //       // Check that isn't the same mutationInfo
-  //       if (mII.nabId != mI.nabId) {
-  //         // Search both operand inside mI.op1, if they are both found AND
-  //         // the operation between them is mII.opTy there is a match.
-  //         // Search from the end of op1 and begin of op2 the OpcodeStr of mII
-  //         auto op1inOp = ::std::search(mI.op1.begin(), mI.op1.end(),
-  //                                      mII.op1.begin(), mII.op1.end());
-  //         auto op2inOp = ::std::search(mI.op1.begin(), mI.op1.end(),
-  //                                      mII.op2.begin(), mII.op2.end());
-  //         if (op1inOp != mI.op1.end() && op2inOp != mI.op1.end() &&
-  //             ::std::find(op1inOp + mII.op1.size() - 1, op2inOp,
-  //                         BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
-  //                 mI.op1.end()) {
-  //           DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op1
-  //                                << " IS Operation: " << mII.nabId << "\n");
-  //           mI.op1 = mII.nabId; // found the new label
-  //           break;
-  //         }
-  //       }
-  //     }
-  //   }
-  //   if (mI.op2OpTy != NoOp) {
-  //     // Operand 2 is a binary operation
-  //     // Search in all info
-  //     for (const auto &mII : this->mutationsInfo) {
-  //       // Check that isn't the same mutationInfo
-  //       if (mII.nabId != mI.nabId) {
-  //         // Search both operand inside mI.op1, if they are both found AND
-  //         // the operation between them is mII.opTy there is a match.
-  //         // Search from the end of op1 and begin of op2 the OpcodeStr of mII
-  //         auto op1inOp = ::std::search(mI.op2.begin(), mI.op2.end(),
-  //                                      mII.op1.begin(), mII.op1.end());
-  //         auto op2inOp = ::std::search(mI.op2.begin(), mI.op2.end(),
-  //                                      mII.op2.begin(), mII.op2.end());
-  //         if (op1inOp != mI.op2.end() && op2inOp != mI.op2.end() &&
-  //             ::std::find(op1inOp + mII.op1.size() - 1, op2inOp,
-  //                         BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
-  //                 mI.op1.end()) {
-  //           DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op2
-  //                                << " IS Operation: " << mII.nabId << "\n");
-  //           mI.op2 = mII.nabId; // found the new label
-  //           break;
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+void chimera::loopbreaker::MutatorLoopBreaker::onCreatedMutant(const ::std::string &mDir) {}
+//   // Create a specific report inside the mutant directory
+//   ::std::error_code error;
+//   ::llvm::raw_fd_ostream report(mDir + "inax1_report.csv", error,
+//                                 ::llvm::sys::fs::OpenFlags::F_Text);
+//   // Resolve operand/operation information, substituting the binary operator
+//   // with the code of the I type operation
+//   // This operation, due to the unknown order of processing, has to be performed
+//   // here
+//   // Make a copy to always read the old operand string
+//   // FIXME: Check also operation type -> store binaryOperator pointer to
+//   // compare?
+//   ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
+//   // for (auto &mI : cMutationsInfo) {
+//   //   if (mI.op1OpTy != NoOp) {
+//   //     // Operand 1 is a binary operation
+//   //     // Search in all info
+//   //     for (const auto &mII : this->mutationsInfo) {
+//   //       // Check that isn't the same mutationInfo
+//   //       if (mII.nabId != mI.nabId) {
+//   //         // Search both operand inside mI.op1, if they are both found AND
+//   //         // the operation between them is mII.opTy there is a match.
+//   //         // Search from the end of op1 and begin of op2 the OpcodeStr of mII
+//   //         auto op1inOp = ::std::search(mI.op1.begin(), mI.op1.end(),
+//   //                                      mII.op1.begin(), mII.op1.end());
+//   //         auto op2inOp = ::std::search(mI.op1.begin(), mI.op1.end(),
+//   //                                      mII.op2.begin(), mII.op2.end());
+//   //         if (op1inOp != mI.op1.end() && op2inOp != mI.op1.end() &&
+//   //             ::std::find(op1inOp + mII.op1.size() - 1, op2inOp,
+//   //                         BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
+//   //                 mI.op1.end()) {
+//   //           DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op1
+//   //                                << " IS Operation: " << mII.nabId << "\n");
+//   //           mI.op1 = mII.nabId; // found the new label
+//   //           break;
+//   //         }
+//   //       }
+//   //     }
+//   //   }
+//   //   if (mI.op2OpTy != NoOp) {
+//   //     // Operand 2 is a binary operation
+//   //     // Search in all info
+//   //     for (const auto &mII : this->mutationsInfo) {
+//   //       // Check that isn't the same mutationInfo
+//   //       if (mII.nabId != mI.nabId) {
+//   //         // Search both operand inside mI.op1, if they are both found AND
+//   //         // the operation between them is mII.opTy there is a match.
+//   //         // Search from the end of op1 and begin of op2 the OpcodeStr of mII
+//   //         auto op1inOp = ::std::search(mI.op2.begin(), mI.op2.end(),
+//   //                                      mII.op1.begin(), mII.op1.end());
+//   //         auto op2inOp = ::std::search(mI.op2.begin(), mI.op2.end(),
+//   //                                      mII.op2.begin(), mII.op2.end());
+//   //         if (op1inOp != mI.op2.end() && op2inOp != mI.op2.end() &&
+//   //             ::std::find(op1inOp + mII.op1.size() - 1, op2inOp,
+//   //                         BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
+//   //                 mI.op1.end()) {
+//   //           DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op2
+//   //                                << " IS Operation: " << mII.nabId << "\n");
+//   //           mI.op2 = mII.nabId; // found the new label
+//   //           break;
+//   //         }
+//   //       }
+//   //     }
+//   //   }
+//   // }
 
-  // Now resolve the retVar, that is where an operation produce a retVar that is
-  // used as input in a
-  // following operation, the two are dependant. So the input var of the latter
-  // operation can be substituted
-  // with the operationId of the first.
-  // The entries are ordered as location of occurrence, starting from the end it
-  // is necessary to see if
-  // an operand that is not a binary operation occurrs as retVar of previous
-  // operation
-  // for (auto rIt = cMutationsInfo.rbegin(), rEnd = cMutationsInfo.rend();
-  //      rIt != rEnd; ++rIt) {
-  //   // Operand 1
-  //   if (rIt->op1OpTy == NoOp) {
-  //     auto &localOp = rIt->op1;
-  //     // loop on the remaining operation
-  //     for (auto rIt2 = rIt + 1; rIt2 != rEnd; rIt2++) {
-  //       // Check if operand 1 is a retVar for anyone of them
-  //       if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
-  //         DEBUG(::llvm::dbgs() << "Operand: " << localOp
-  //                              << " IS Operation: " << rIt2->nabId << "\n");
-  //         localOp = rIt2->nabId; // new label
-  //         break;
-  //       }
-  //     }
-  //   }
-  //   if (rIt->op2OpTy == NoOp) {
-  //     // Operand 2
-  //     auto &localOp = rIt->op2;
-  //     // loop on the remaining operation
-  //     for (auto rIt2 = rIt + 1; rIt2 != rEnd; rIt2++) {
-  //       // Check if operand 1 is a retVar for anyone of them
-  //       if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
-  //         DEBUG(::llvm::dbgs() << "Operand: " << localOp
-  //                              << " IS Operation: " << rIt2->nabId << "\n");
-  //         localOp = rIt2->nabId; // new label
-  //         break;
-  //       }
-  //     }
-  //   }
-  // }
+//   // Now resolve the retVar, that is where an operation produce a retVar that is
+//   // used as input in a
+//   // following operation, the two are dependant. So the input var of the latter
+//   // operation can be substituted
+//   // with the operationId of the first.
+//   // The entries are ordered as location of occurrence, starting from the end it
+//   // is necessary to see if
+//   // an operand that is not a binary operation occurrs as retVar of previous
+//   // operation
+//   // for (auto rIt = cMutationsInfo.rbegin(), rEnd = cMutationsInfo.rend();
+//   //      rIt != rEnd; ++rIt) {
+//   //   // Operand 1
+//   //   if (rIt->op1OpTy == NoOp) {
+//   //     auto &localOp = rIt->op1;
+//   //     // loop on the remaining operation
+//   //     for (auto rIt2 = rIt + 1; rIt2 != rEnd; rIt2++) {
+//   //       // Check if operand 1 is a retVar for anyone of them
+//   //       if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
+//   //         DEBUG(::llvm::dbgs() << "Operand: " << localOp
+//   //                              << " IS Operation: " << rIt2->nabId << "\n");
+//   //         localOp = rIt2->nabId; // new label
+//   //         break;
+//   //       }
+//   //     }
+//   //   }
+//   //   if (rIt->op2OpTy == NoOp) {
+//   //     // Operand 2
+//   //     auto &localOp = rIt->op2;
+//   //     // loop on the remaining operation
+//   //     for (auto rIt2 = rIt + 1; rIt2 != rEnd; rIt2++) {
+//   //       // Check if operand 1 is a retVar for anyone of them
+//   //       if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
+//   //         DEBUG(::llvm::dbgs() << "Operand: " << localOp
+//   //                              << " IS Operation: " << rIt2->nabId << "\n");
+//   //         localOp = rIt2->nabId; // new label
+//   //         break;
+//   //       }
+//   //     }
+//   //   }
+//   // }
 
-  // for (const auto& mutationInfo : this->mutationsInfo) {
-  for (const auto &mutationInfo : cMutationsInfo) {
-    report << mutationInfo.nabId << "," << mutationInfo.line << ","
-           << "\"" << mutationInfo.op1 << "\","
-           << "\"" << mutationInfo.op2 << "\","
-           << "\"" << mutationInfo.retOp << "\"\n";
-  }
-  report.close();
-}
+//   // for (const auto& mutationInfo : this->mutationsInfo) {
+//   for (const auto &mutationInfo : cMutationsInfo) {
+//     report << mutationInfo.nabId << "," << mutationInfo.line << ","
+//            << "\"" << mutationInfo.op1 << "\","
+//            << "\"" << mutationInfo.op2 << "\","
+//            << "\"" << mutationInfo.retOp << "\"\n";
+//   }
+//   report.close();
+// }
