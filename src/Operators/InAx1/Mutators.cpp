@@ -308,26 +308,15 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
 void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
   // Create a specific report inside the mutant directory
-  // if(this->hasReported) return;
-  // hasReported = true;
+
   ::std::error_code error;
   ::llvm::raw_fd_ostream report(mDir + this->reportName + ".csv", error, ::llvm::sys::fs::OpenFlags::F_Append);
-
-  // ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
-  
-  // for (const auto &mutationInfo : cMutationsInfo) {
-  //   report << mutationInfo.nabId << "," << mutationInfo.line << ","
-  //          << "\"" << mutationInfo.op1 << "\","
-  //          << "\"" << mutationInfo.op2 << "\","
-  //          << "\"" << mutationInfo.retOp << "\"\n";
-  //   cMutationsInfo.erase(mutationInfo);
-  // }
 
   DEBUG(::llvm::dbgs()  << "****************************************************\nStart writing report\n");
 
   while( !(this->mutationsInfo.empty()) ){
     DEBUG(::llvm::dbgs()  << "Writing element...\n");
-    
+
     MutatorInAx1::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.nabId << "," << mutationInfo.line << ","
            << "\"" << mutationInfo.op1 << "\","

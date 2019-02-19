@@ -196,8 +196,6 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
 }
 
 void chimera::axdct::MutatorAxDCT::onCreatedMutant(const ::std::string &mDir) {
-  // if(this->hasReported) return;
-  // hasReported = true;
   // Create a specific report inside the mutant directory
   ::std::error_code error;
   ::llvm::raw_fd_ostream report(mDir + "axdct_report.csv", error, ::llvm::sys::fs::OpenFlags::F_Append);

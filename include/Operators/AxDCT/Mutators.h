@@ -69,7 +69,6 @@ public:
 private:
       unsigned int operationCounter = 0;  ///< Counter to keep tracks of done mutations
       ::std::vector<MutationInfo> mutationsInfo;  ///< It maintains info about mutations, in order to be saved
-      bool hasReported = false;
 };
 
 /// \}
