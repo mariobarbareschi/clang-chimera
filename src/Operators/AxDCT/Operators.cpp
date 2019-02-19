@@ -23,26 +23,26 @@
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
-#include "Operators/LoopBreaker/Mutators.h"
-#include "Operators/LoopBreaker/Operators.h"
+#include "Operators/AxDCT/Mutators.h"
+#include "Operators/AxDCT/Operators.h"
 #include "Operators/InAx1/Mutators.h"
 #include "Operators/InAx1/Operators.h"
 
 ::std::unique_ptr<::chimera::m_operator::MutationOperator>
-chimera::loopbreaker::getLoopBreakerOperator() {
+chimera::axdct::getAxDCTOperator() {
   ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
       new ::chimera::m_operator::MutationOperator(
-          "LoopBreaker-Operator",   // Operator identifier to use into the conf.csv
+          "AxDCT-Operator",   // Operator identifier to use into the conf.csv
           "Breakes a nested for loop by a global parameter", // Description
           true) // It is a HOM Operator
       );
 
   // Add mutators to the current operator
   Op->addMutator(
-      ::chimera::m_operator::MutatorPtr(new ::chimera::loopbreaker::MutatorLoopBreaker()));
+      ::chimera::m_operator::MutatorPtr(new ::chimera::axdct::MutatorAxDCT()));
 
   Op->addMutator(
-      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorInAx1()));
+      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorInAx1("axdct_report")));
 
       
 

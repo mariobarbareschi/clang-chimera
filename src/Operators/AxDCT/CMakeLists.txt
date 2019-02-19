@@ -2,7 +2,7 @@
 # Typically is necessary to change the target name (in this case 'example_operators') and
 # add the relative path to the created source codes.
 # Use this variable to change the target name
-set (target_name "loopbreaker_operator")
+set (target_name "axdct_operator")
 set (target_lib_name ${target_name})
 
 # Create a library target. 

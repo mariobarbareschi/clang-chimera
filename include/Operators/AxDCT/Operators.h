@@ -20,26 +20,26 @@
 //===----------------------------------------------------------------------===//
 /// \file Operators.h
 /// \author Andrea Aletto
-/// \brief Declaration of loop breaker operator
+/// \brief Declaration of AxDCT operator
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_LOOPBREAKER_OPERATORS_H
-#define INCLUDE_OPERATORS_LOOPBREAKER_OPERATORS_H
+#ifndef INCLUDE_OPERATORS_AXDCT_OPERATORS_H
+#define INCLUDE_OPERATORS_AXDCT_OPERATORS_H
 
 #include "Core/MutationOperator.h"
 
 namespace chimera
 {
-namespace loopbreaker
+namespace axdct
 {
 
 /// \addtogroup OPERATORS_SAMPLE_OPERATORS Sample Mutation Operators
 /// \{
 /// @brief Create and return the ROR Operator
-::std::unique_ptr<::chimera::m_operator::MutationOperator> getLoopBreakerOperator();
+::std::unique_ptr<::chimera::m_operator::MutationOperator> getAxDCTOperator();
 /// \}
-} // end namespace chimera::loopbreaker
+} // end namespace chimera::axdct
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_LOOPBREAKER_OPERATORS_H */
+#endif /* INCLUDE_OPERATORS_AXDCT_OPERATORS_H */
 

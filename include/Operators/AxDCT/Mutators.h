@@ -20,17 +20,17 @@
 //===----------------------------------------------------------------------===//
 /// \file Mutators.h
 /// \author Andrea Aletto
-/// \brief Mutator declaration for loop breaker
+/// \brief Mutator declaration for AxDCT
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_LOOPBREAKER_MUTATORS_H
-#define INCLUDE_OPERATORS_LOOPBREAKER_MUTATORS_H
+#ifndef INCLUDE_OPERATORS_AXDCT_MUTATORS_H
+#define INCLUDE_OPERATORS_AXDCT_MUTATORS_H
 
 #include "Core/Mutator.h"
 
 namespace chimera
 {
-namespace loopbreaker
+namespace axdct
 {
 
 /// \addtogroup OPERATORS_SAMPLE_MUTATORS Sample Mutators
@@ -40,7 +40,7 @@ namespace loopbreaker
  * @brief This mutator matches the binary relational operator >, and replaces it with
  *        others (at the moment < and <=).
  */
-class MutatorLoopBreaker : public chimera::mutator::Mutator
+class MutatorAxDCT : public chimera::mutator::Mutator
 {
     ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
@@ -51,9 +51,9 @@ public:
     /**
      * @brief Constuctor
      */
-    MutatorLoopBreaker()
+    MutatorAxDCT()
         : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
-                    "mutator_loopbreaker", // String identifier
+                    "mutator_axdct", // String identifier
                     "Breakes a nested for loop by a global parameter", // Description
                     1, // One mutation type
                     true
@@ -73,7 +73,7 @@ private:
 };
 
 /// \}
-} // end namespace chimera::loopbreaker
+} // end namespace chimera::axdct
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_LOOPBREAKER_MUTATORS_H */
+#endif /* INCLUDE_OPERATORS_AXDCT_MUTATORS_H */

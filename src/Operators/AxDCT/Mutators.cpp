@@ -20,10 +20,10 @@
 //===----------------------------------------------------------------------===//
 /// \file Mutators.cpp
 /// \author Andrea Aletto
-/// \brief Loopbreaker mutator implementation
+/// \brief AxDCT mutator implementation
 //===----------------------------------------------------------------------===//
 
-#include "Operators/LoopBreaker/Mutators.h"
+#include "Operators/AxDCT/Mutators.h"
 #include "llvm/Support/ErrorHandling.h"
 
 #include "Log.h"
@@ -31,7 +31,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include <iostream>
 
-#define DEBUG_TYPE "mutator_loopbreaker"
+#define DEBUG_TYPE "mutator_axdct"
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -62,7 +62,7 @@ using namespace clang::ast_type_traits;
 /// \brief It is used to retrieve the node, it hides the binding string.
 ///        In Mutator.h there is code template snippet that should be fine for
 ///        all the majority of the cases.
-bool chimera::loopbreaker::MutatorLoopBreaker::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
+bool chimera::axdct::MutatorAxDCT::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
   const ForStmt *forStmt = node.Nodes.getNodeAs<ForStmt>("outer_for_stmt");
   assert(forStmt && "ForStmt is nullptr");
   if (forStmt != nullptr) {
@@ -74,7 +74,7 @@ bool chimera::loopbreaker::MutatorLoopBreaker::getMatchedNode(const NodeType &no
 
 /// \brief  This method implements the coarse grained matching rules,
 ///         returning the statement matcher to match the inner for loop
-StatementMatcher chimera::loopbreaker::MutatorLoopBreaker::getStatementMatcher() {
+StatementMatcher chimera::axdct::MutatorAxDCT::getStatementMatcher() {
   return stmt(
     forStmt(
       unless(hasAncestor(forStmt()))
@@ -83,11 +83,11 @@ StatementMatcher chimera::loopbreaker::MutatorLoopBreaker::getStatementMatcher()
 }
 
 /// \brief  Coarse grain is enough to identify the inner for loop
-bool chimera::loopbreaker::MutatorLoopBreaker::match(const NodeType &node) {
+bool chimera::axdct::MutatorAxDCT::match(const NodeType &node) {
     return true;
 }
 
-Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
+Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
 
     // Retrieve a pointer to function declaration (or template function declaration) to insert global variables before it
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
@@ -132,7 +132,7 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // nformation for the report:
-    MutatorLoopBreaker::MutationInfo mutationInfo;
+    MutatorAxDCT::MutationInfo mutationInfo;
 
     // * Operation Identifier
     mutationInfo.baseId = baseId;
@@ -203,15 +203,14 @@ Rewriter &chimera::loopbreaker::MutatorLoopBreaker::mutate(const NodeType &node,
 
 }
 
-void chimera::loopbreaker::MutatorLoopBreaker::onCreatedMutant(const ::std::string &mDir) {
+void chimera::axdct::MutatorAxDCT::onCreatedMutant(const ::std::string &mDir) {
   // Create a specific report inside the mutant directory
   ::std::error_code error;
-  ::llvm::raw_fd_ostream report(mDir + "loopbreaker_report.csv", error, ::llvm::sys::fs::OpenFlags::F_Text);
-
+  ::llvm::raw_fd_ostream report(mDir + "axdct_report.csv", error, ::llvm::sys::fs::OpenFlags::F_Text);
   ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
 
   for (const auto &mutationInfo : cMutationsInfo) {
-    report << mutationInfo.baseId << "," << mutationInfo.line << "\n";
+    report << mutationInfo.baseId << "," << mutationInfo.line << ",\"\"" << ",\"\"" << ",\"\"" << "\n";
   }
   report.close();
 }
