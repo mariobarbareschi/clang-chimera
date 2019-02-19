@@ -25,6 +25,8 @@
 
 #include "Operators/LoopBreaker/Mutators.h"
 #include "Operators/LoopBreaker/Operators.h"
+#include "Operators/InAx1/Mutators.h"
+#include "Operators/InAx1/Operators.h"
 
 ::std::unique_ptr<::chimera::m_operator::MutationOperator>
 chimera::loopbreaker::getLoopBreakerOperator() {
@@ -38,6 +40,11 @@ chimera::loopbreaker::getLoopBreakerOperator() {
   // Add mutators to the current operator
   Op->addMutator(
       ::chimera::m_operator::MutatorPtr(new ::chimera::loopbreaker::MutatorLoopBreaker()));
+
+  Op->addMutator(
+      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorInAx1()));
+
+      
 
   // Return the operator
   return Op;

@@ -46,11 +46,6 @@ class MutatorLoopBreaker : public chimera::mutator::Mutator
       struct MutationInfo {
         ::std::string baseId;  ///< Operation Identifier
         unsigned line;  ///< Occurrence line
-        ::std::string op1;  ///< Operand 1
-        ::clang::BinaryOperatorKind op1OpTy;  ///< It is != NoOp if operand 1 is a binary operation
-        ::std::string op2;  ///< Operand 2
-        ::clang::BinaryOperatorKind op2OpTy;  ///< It is != NoOp if operand 2 is a binary operation
-        ::std::string retOp;  ///< Operand which eventually is returned
       };
 public:
     /**
