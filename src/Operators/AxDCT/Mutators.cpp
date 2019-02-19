@@ -208,7 +208,7 @@ void chimera::axdct::MutatorAxDCT::onCreatedMutant(const ::std::string &mDir) {
 
     MutatorAxDCT::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.baseId << "," << mutationInfo.line 
-    << ",\"\"" << ",\"\"" << ",\"\"" 
+    << ",\"NULL\"" << ",\"NULL\"" << ",\"NULL\"" 
     << "\n";
     this->mutationsInfo.pop_back();
   }

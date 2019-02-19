@@ -6,4 +6,4 @@ LLVM_LIBS=$(echo $LLVM_LIBS | sed "s/all-targets;//g")
 rm -Rf build
 mkdir build
 cd build
-cmake .. -G Ninja -DLLVM_COMPS=$(echo $LLVM_LIBS)
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_COMPS=$(echo $LLVM_LIBS)
