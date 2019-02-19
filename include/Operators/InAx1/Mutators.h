@@ -83,6 +83,7 @@ private:
       unsigned int operationCounter;  ///< Counter to keep tracks of done mutations
       ::std::vector<MutationInfo> mutationsInfo;  ///< It maintains info about mutations, in order to be saved
       ::std::string reportName = "inax1_report";
+      bool hasReported = false;
 };
 
 /// \}

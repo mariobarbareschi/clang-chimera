@@ -42,7 +42,6 @@ namespace axdct
  */
 class MutatorAxDCT : public chimera::mutator::Mutator
 {
-    ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
         ::std::string baseId;  ///< Operation Identifier
         unsigned line;  ///< Occurrence line
@@ -68,8 +67,9 @@ public:
     virtual void onCreatedMutant(const ::std::string&) override;
 
 private:
-      unsigned int operationCounter;  ///< Counter to keep tracks of done mutations
+      unsigned int operationCounter = 0;  ///< Counter to keep tracks of done mutations
       ::std::vector<MutationInfo> mutationsInfo;  ///< It maintains info about mutations, in order to be saved
+      bool hasReported = false;
 };
 
 /// \}

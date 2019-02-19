@@ -298,79 +298,9 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     // Save info into the report
     this->mutationsInfo.push_back(mutationInfo);
   } while(bop != NULL);
-    
-
-    // //Info for the report
-    // bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(internalLhs);
-    // bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(internalRhs);
-    // ::std::string retVar = "NULL";
-
-    // // Traverse the AST from the last add to the others 
-    // BinaryOperator *bopParent = (BinaryOperator*)bop;
-
-    // while( 
-    //     ( bopParent != NULL ) &&
-    //     ( !(node.Context->getParents(*bopParent)).empty() ) && 
-    //     ( ( ((BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>()) ) != NULL) &&
-    //     ( ( ((BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>())->getOpcodeStr() ) == "+") 
-    // ){ 
-    //     // Iterate if:
-    //     //      1) the node bopParent exists        AND
-    //     //      2) the node bopParent has a parent  AND
-    //     //      3) this parent of bopParent is a BinaryOperator (aka casting to BinaryOperator* succeded) AND
-    //     //      4) this parent of bopParent is a +
-
-    //     // Assign to bopParent its parent (for the next iteration)
-    //     bopParent = (BinaryOperator*) (node.Context->getParents(*bopParent)[0]).get<BinaryOperator>();
-
-    //     // Retrieve text information for the current operator
-    //     nabId = "nab_" + ::std::to_string(bopNum++);        
-    //     rhsString = rw.getRewrittenText(bopParent->getRHS()->getSourceRange());
-    //     lhsString = rw.getRewrittenText(bopParent->getLHS()->getSourceRange());
-
-    //     rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
-    //     bopReplacement = "inax1_sum(" + nabId + ", " + lhsString + ", " + rhsString + ")";
-
-    //     rw.ReplaceText(bopParent->getSourceRange(), bopReplacement);  
-
-    //     ////////////////////////////////////////////////////////////////////////////////////////////
-    //     /// Debug
-    //     DEBUG(::llvm::dbgs() << "****************************************************"
-    //                             "****\nDump binary operation:\n");
-    //     DEBUG(::llvm::dbgs() << "Operation: "
-    //                         << rw.getRewrittenText(bopParent->getSourceRange()) << " ==> ["
-    //                         << bopParent->getOpcodeStr() << "]\n");
-    //     DEBUG(::llvm::dbgs() << "LHS: " << lhsString << "\n");
-    //     DEBUG(::llvm::dbgs() << "RHS: " << rhsString << "\n");
-    //     ////////////////////////////////////////////////////////////////////////////////////////////
-
-    // }
 
     this->operationCounter = bopNum;
 
-
-    // ::std::vector<Expr*> args;
-    // //args->push_back(nab);
-    // args.push_back((Expr*) lhs);
-    // args.push_back((Expr*) rhs);
-
-    // QualType t;
-    // Expr* fn = NULL;
-
-    // CallExpr func(
-    //   *node.Context, 
-    //   fn, 
-    //   args, 
-    //   t,
-    //   VK_LValue, 
-    //   bop->getLocEnd()
-    // );
-
-
-
-    
-
-    
     return rw;
 
 
@@ -378,16 +308,34 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
 void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
   // Create a specific report inside the mutant directory
+  // if(this->hasReported) return;
+  // hasReported = true;
   ::std::error_code error;
-  ::llvm::raw_fd_ostream report(mDir + this->reportName + ".csv", error, ::llvm::sys::fs::OpenFlags::F_Text);
+  ::llvm::raw_fd_ostream report(mDir + this->reportName + ".csv", error, ::llvm::sys::fs::OpenFlags::F_Append);
 
-  ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
+  // ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
   
-  for (const auto &mutationInfo : cMutationsInfo) {
+  // for (const auto &mutationInfo : cMutationsInfo) {
+  //   report << mutationInfo.nabId << "," << mutationInfo.line << ","
+  //          << "\"" << mutationInfo.op1 << "\","
+  //          << "\"" << mutationInfo.op2 << "\","
+  //          << "\"" << mutationInfo.retOp << "\"\n";
+  //   cMutationsInfo.erase(mutationInfo);
+  // }
+
+  DEBUG(::llvm::dbgs()  << "****************************************************\nStart writing report\n");
+
+  while( !(this->mutationsInfo.empty()) ){
+    DEBUG(::llvm::dbgs()  << "Writing element...\n");
+    
+    MutatorInAx1::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.nabId << "," << mutationInfo.line << ","
            << "\"" << mutationInfo.op1 << "\","
            << "\"" << mutationInfo.op2 << "\","
            << "\"" << mutationInfo.retOp << "\"\n";
+
+    this->mutationsInfo.pop_back();
   }
   report.close();
+  DEBUG(::llvm::dbgs()  << "****************************************************\nReport written successfully\n");
 }

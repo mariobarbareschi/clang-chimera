@@ -93,16 +93,6 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
     const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
 
-    // const ForStmt *innerFor = node.Nodes.getNodeAs<ForStmt>("outer_for_stmt");
-
-    // if(innerFor) {
-    //   DEBUG(::llvm::dbgs()  << "\n****************************************************\n");
-    //   const Expr* cond = innerFor->getCond();
-    //   std::string condString = rw.getRewrittenText(cond->getSourceRange());
-    //   DEBUG(::llvm::dbgs()  << condString );
-    //   DEBUG(::llvm::dbgs()  << "\n****************************************************\n");
-    // }
-
     // Set the operation number
     unsigned int bopNum = this->operationCounter++;
     // Local rewriter to hold the original code
@@ -154,6 +144,7 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
     DEBUG(::llvm::dbgs()  << "Condition: "            << condString << "\n");
     DEBUG(::llvm::dbgs()  << "Condition Variable: "   << condVariableString << "\n");
     DEBUG(::llvm::dbgs()  << "Mutate condition in: "  << condReplacement << "\n");
+    DEBUG(::llvm::dbgs()  << "Elements in report: "  << this->mutationsInfo.size() << "\n");
     DEBUG(::llvm::dbgs()  << "****************************************************\n\n");
 
     ////////////////////////////////////////////////////////////////////////////////////////// 
@@ -191,6 +182,7 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
     DEBUG(::llvm::dbgs()  << "Condition: "            << innerCondString << "\n");
     DEBUG(::llvm::dbgs()  << "Condition Variable: "   << innerCondVariableString << "\n");
     DEBUG(::llvm::dbgs()  << "Mutate condition in: "  << condReplacement << "\n");
+    DEBUG(::llvm::dbgs()  << "Elements in report: "  << this->mutationsInfo.size() << "\n");
     DEBUG(::llvm::dbgs()  << "****************************************************\n\n");
 
     ////////////////////////////////////////////////////////////////////////////////////////// 
@@ -204,13 +196,24 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
 }
 
 void chimera::axdct::MutatorAxDCT::onCreatedMutant(const ::std::string &mDir) {
+  // if(this->hasReported) return;
+  // hasReported = true;
   // Create a specific report inside the mutant directory
   ::std::error_code error;
-  ::llvm::raw_fd_ostream report(mDir + "axdct_report.csv", error, ::llvm::sys::fs::OpenFlags::F_Text);
+  ::llvm::raw_fd_ostream report(mDir + "axdct_report.csv", error, ::llvm::sys::fs::OpenFlags::F_Append);
   ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
 
-  for (const auto &mutationInfo : cMutationsInfo) {
-    report << mutationInfo.baseId << "," << mutationInfo.line << ",\"\"" << ",\"\"" << ",\"\"" << "\n";
+  DEBUG(::llvm::dbgs()  << "****************************************************\nStart writing report\n");
+
+  while( !(this->mutationsInfo.empty()) ){
+    DEBUG(::llvm::dbgs()  << "Writing element...\n");
+
+    MutatorAxDCT::MutationInfo mutationInfo = this->mutationsInfo.back();
+    report << mutationInfo.baseId << "," << mutationInfo.line 
+    << ",\"\"" << ",\"\"" << ",\"\"" 
+    << "\n";
+    this->mutationsInfo.pop_back();
   }
   report.close();
+  DEBUG(::llvm::dbgs()  << "****************************************************\nReport written successfully\n");
 }
