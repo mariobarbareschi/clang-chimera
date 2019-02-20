@@ -38,6 +38,7 @@ using namespace clang::ast_matchers;
 using namespace chimera;
 using namespace chimera::mutator;
 using namespace clang::ast_type_traits;
+using namespace chimera::log;
 
 #define PARENT_NODE_TYPE(res_matcher, child)                                   \
   (res_matcher.Context->getParents(*child))[0].getNodeKind().asStringRef()
@@ -82,7 +83,7 @@ StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
   // case "inax1_op".
   return stmt(
     binaryOperator(
-      hasOperatorName("+"),
+      anyOf(hasOperatorName("+"), hasOperatorName("-")),
       hasRHS(XHS_MATCHER("int", "rhs")),
       hasLHS(XHS_MATCHER("int", "lhs"))
     ).bind("inax1_op"),
@@ -120,23 +121,29 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
 
     // Third operation: discard match if Xhs is a +
     if (isLhsBinaryOp){
-        if( ((BinaryOperator*)lhs)->getOpcodeStr() == "+" ) return false;
+        if( (((BinaryOperator*)lhs)->getOpcodeStr() == "+") ||
+             ((BinaryOperator*)lhs)->getOpcodeStr() == "-") return false;
     }
     
     if (isRhsBinaryOp){
-        if( ((BinaryOperator*)rhs)->getOpcodeStr() == "+" ) return false;
+        if( (((BinaryOperator*)rhs)->getOpcodeStr() == "+") ||
+             ((BinaryOperator*)lhs)->getOpcodeStr() == "-") return false;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
+    char log_string[500];
     Rewriter rw(*(node.SourceManager), node.Context->getLangOpts());
-    DEBUG(::llvm::dbgs() << "****************************************************"
-                            "****\nMatched operation:\n");
-    DEBUG(::llvm::dbgs() << "Operation: "
-                        << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-                        << bop->getOpcodeStr() << "]\n");
-    DEBUG(::llvm::dbgs() << "LHS: " << rw.getRewrittenText(lhs->getSourceRange()) << "\n");
-    DEBUG(::llvm::dbgs() << "RHS: " << rw.getRewrittenText(rhs->getSourceRange()) << "\n");
+    ChimeraLogger::verbose("********************************************************\nMatched operation:");
+
+    sprintf(log_string, "Operation: %s ==> [%s]", rw.getRewrittenText(bop->getSourceRange()).c_str(),bop->getOpcodeStr().str().c_str());
+    ChimeraLogger::verbose(log_string);
+
+    sprintf(log_string, "LHS: %s", rw.getRewrittenText(lhs->getSourceRange()).c_str());
+    ChimeraLogger::verbose(log_string);
+
+    sprintf(log_string, "RHS: %s\n", rw.getRewrittenText(rhs->getSourceRange()).c_str());
+    ChimeraLogger::verbose(log_string);
     //////////////////////////////////////////////////////////////////////////////////////////// 
 
     if(rw.getRewrittenText(lhs->getSourceRange()) == "") return false;
@@ -146,6 +153,8 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
 }
 
 Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
+
+    char log_info[500];
 
     // Retrieve a pointer to function declaration (or template function declaration) to insert global variables before it
     const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
@@ -183,8 +192,16 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
       rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
 
     // Retrieve the name of the operands
-    ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
-    ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
+    ::std::string lhsString       = rw.getRewrittenText(lhs->getSourceRange());
+    ::std::string rhsString       = rw.getRewrittenText(rhs->getSourceRange());
+    ::std::string operationString = ""; 
+    if( bop->getOpcodeStr() == "+" ){
+      operationString = "false";
+    } else if( bop->getOpcodeStr() == "-" ){
+      operationString = "true";
+    } else {
+      operationString = "UNDEFINED";
+    }
 
     // Start collecting information for the report (everything but the return variable):
     MutatorInAx1::MutationInfo mutationInfo;
@@ -215,18 +232,23 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     mutationInfo.retOp = "NULL";
 
     // Form the replacing string
-    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ")";
+    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ")";
       
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
-    DEBUG(::llvm::dbgs()  << "****************************************************"
-                            "****\nDump binary operation:\n");
-    DEBUG(::llvm::dbgs()  << "Operation: "
-                          << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-                          << bop->getOpcodeStr() << "]\n");
-    DEBUG(::llvm::dbgs()  << "LHS: " << lhsString << "\n");
-    DEBUG(::llvm::dbgs()  << "RHS: " << rhsString << "\n");
-    DEBUG(::llvm::dbgs()  << "Mutation in: " << bopReplacement << "\n");
+    ChimeraLogger::verbose("********************************************************\nDump binary operation:");
+
+    sprintf(log_info, "Operation: %s  ==> [%s]",rw.getRewrittenText(bop->getSourceRange()).c_str(),bop->getOpcodeStr().str().c_str());
+    ChimeraLogger::verbose(log_info);
+
+    sprintf(log_info, "LHS: %s", lhsString.c_str());
+    ChimeraLogger::verbose(log_info);
+
+    sprintf(log_info, "RHS: %s", rhsString.c_str());
+    ChimeraLogger::verbose(log_info);
+
+    sprintf(log_info, "Mutation in: %s\n", bopReplacement.c_str());
+    ChimeraLogger::verbose(log_info);
 
     //////////////////////////////////////////////////////////////////////////////////////////// 
 
@@ -235,7 +257,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
     // Stop if the current node (bop) has no parents
     if( node.Context->getParents(*bop).empty() ) { 
-      DEBUG(::llvm::dbgs()  << "No more parents. Exiting\n");
+      ChimeraLogger::verbose("No more parents. Exiting\n");
       break; 
     }
 
@@ -244,37 +266,35 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
 
     if(parentType == "BinaryOperator"){
       // If the parent is a BinaryOperator then assign to bop its parent
-      DEBUG(::llvm::dbgs()  << "Parent is a BOP\n");
+      ChimeraLogger::verbose("Parent is a BOP\n");
       bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
 
-    } else if(parentType == "ParenExpr"){
+    } else if((parentType == "ParenExpr")){
       // If the parent is a parenthesis node then retrieve it and traverse up the ast
       // till the next non-parenthesis node. 
       ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
       while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
           parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
       }
-      DEBUG(::llvm::dbgs()  << "Parens skipped successfully.\n");
+      ChimeraLogger::verbose("Parens skipped successfully.\n");
 
       // If the content of parenthesis is not a BinaryOperator then exit else assign
       // parenthesis content to bop
       if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
-        DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parens content of type ["
-                              << PARENT_NODE_TYPE(node, parens)
-                              << "]. Exiting...\n");
+        sprintf(log_info, "WARNING: Unexpected parens content of type [%s]. Exiting...\n", PARENT_NODE_TYPE(node, parens).str().c_str());
+        ChimeraLogger::verbose(log_info);
         bop = NULL;
       } else bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
 
-    } else if((parentType == "FunDecl") || (parentType == "VarDecl")){
+    } else if((parentType == "FunDecl") || (parentType == "VarDecl") || (parentType == "ImplicitCastExpr")){
       // If the parent is a FunDecl or a VarDecl then exit
-      DEBUG(::llvm::dbgs()  << "Function o Variable Declarion reached. Exiting...\n");
+      ChimeraLogger::verbose("Function o Variable Declaration reached. Exiting...\n");
       bop = NULL;
 
     } else {
       // If the parent is not one of the previous IFs, then exit and print the unexpected type
-      DEBUG(::llvm::dbgs()  << "WARNING: Unexpected parent of type [" 
-                            << parentType 
-                            << "]. Exiting...\n");
+      sprintf(log_info, "WARNING: Unexpected parent of type [%s]. Exiting...\n", parentType.c_str());
+      ChimeraLogger::verbose(log_info);
       bop = NULL;
     }
 
@@ -291,7 +311,8 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
         
       // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
       // and it's a =, then exit 
-      DEBUG(::llvm::dbgs()  << "BOP opcod is [" << bop->getOpcodeStr() << "]. Exiting...\n");
+      sprintf(log_info, "BOP opcod is [%s]. Exiting...\n", bop->getOpcodeStr().str().c_str());
+      ChimeraLogger::verbose(log_info);
       bop = NULL;
     }
 
@@ -312,10 +333,10 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
   ::std::error_code error;
   ::llvm::raw_fd_ostream report(mDir + this->reportName + ".csv", error, ::llvm::sys::fs::OpenFlags::F_Append);
 
-  DEBUG(::llvm::dbgs()  << "****************************************************\nStart writing report\n");
+  ChimeraLogger::verbose("****************************************************\nStart writing report");
 
   while( !(this->mutationsInfo.empty()) ){
-    DEBUG(::llvm::dbgs()  << "Writing element...\n");
+    ChimeraLogger::verbose("Writing element...");
 
     MutatorInAx1::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.nabId << "," << mutationInfo.line << ","
@@ -326,5 +347,5 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
     this->mutationsInfo.pop_back();
   }
   report.close();
-  DEBUG(::llvm::dbgs()  << "****************************************************\nReport written successfully\n");
+  ChimeraLogger::verbose("****************************************************\nReport written successfully");
 }
