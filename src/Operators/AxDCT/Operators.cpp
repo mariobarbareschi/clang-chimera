@@ -1,4 +1,4 @@
-//===- Operators.h ----------------------------------------------*- C++ -*-===//
+//===- Operators.cpp ---------------------------------------------*- C++-*-===//
 //
 //  Copyright (C) 2015, 2016  Federico Iannucci (fed.iannucci@gmail.com)
 //
@@ -18,28 +18,34 @@
 //  along with Clang-Chimera. If not, see <http://www.gnu.org/licenses/>.
 //
 //===----------------------------------------------------------------------===//
-/// \file Operators.h
+/// \file Operators.cpp
 /// \author Andrea Aletto
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_INAX1_OPERATORS_H
-#define INCLUDE_OPERATORS_INAX1_OPERATORS_H
+#include "Operators/AxDCT/Mutators.h"
+#include "Operators/AxDCT/Operators.h"
+#include "Operators/InAx1/Mutators.h"
+#include "Operators/InAx1/Operators.h"
 
-#include "Core/MutationOperator.h"
+::std::unique_ptr<::chimera::m_operator::MutationOperator>
+chimera::axdct::getAxDCTOperator() {
+  ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
+      new ::chimera::m_operator::MutationOperator(
+          "AxDCT-Operator",   // Operator identifier to use into the conf.csv
+          "Breakes a nested for loop by a global parameter", // Description
+          true) // It is a HOM Operator
+      );
 
-namespace chimera
-{
-namespace inax1
-{
+  // Add mutators to the current operator
+  Op->addMutator(
+      ::chimera::m_operator::MutatorPtr(new ::chimera::axdct::MutatorAxDCT()));
 
-/// \addtogroup OPERATORS_SAMPLE_OPERATORS Sample Mutation Operators
-/// \{
-/// @brief Create and return the ROR Operator
-::std::unique_ptr<::chimera::m_operator::MutationOperator> getInAx1Operator();
-/// \}
-} // end namespace chimera::inax1
-} // end namespace chimera
+  Op->addMutator(
+      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorInAx1("axdct_report")));
 
-#endif /* INCLUDE_OPERATORS_INAX1_OPERATORS_H */
+      
 
+  // Return the operator
+  return Op;
+}

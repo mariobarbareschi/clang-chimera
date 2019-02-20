@@ -20,17 +20,17 @@
 //===----------------------------------------------------------------------===//
 /// \file Mutators.h
 /// \author Andrea Aletto
-/// \brief This file contains sample mutators
+/// \brief Mutator declaration for AxDCT
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_INAX1_MUTATORS_H
-#define INCLUDE_OPERATORS_INAX1_MUTATORS_H
+#ifndef INCLUDE_OPERATORS_AXDCT_MUTATORS_H
+#define INCLUDE_OPERATORS_AXDCT_MUTATORS_H
 
 #include "Core/Mutator.h"
 
 namespace chimera
 {
-namespace inax1
+namespace axdct
 {
 
 /// \addtogroup OPERATORS_SAMPLE_MUTATORS Sample Mutators
@@ -40,36 +40,23 @@ namespace inax1
  * @brief This mutator matches the binary relational operator >, and replaces it with
  *        others (at the moment < and <=).
  */
-class MutatorInAx1 : public chimera::mutator::Mutator
+class MutatorAxDCT : public chimera::mutator::Mutator
 {
-    ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
-        ::std::string nabId;  ///< Operation Identifier
+        ::std::string baseId;  ///< Operation Identifier
         unsigned line;  ///< Occurrence line
-        ::std::string op1;  ///< Operand 1
-        ::clang::BinaryOperatorKind op1OpTy;  ///< It is != NoOp if operand 1 is a binary operation
-        ::std::string op2;  ///< Operand 2
-        ::clang::BinaryOperatorKind op2OpTy;  ///< It is != NoOp if operand 2 is a binary operation
-        ::std::string retOp;  ///< Operand which eventually is returned
       };
 public:
     /**
      * @brief Constuctor
      */
-    MutatorInAx1()
+    MutatorAxDCT()
         : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
-                    "mutator_inax1", // String identifier
-                    "Replaces exact sum with inexact sum based on InAx1 cell", // Description
+                    "mutator_axdct", // String identifier
+                    "Breakes a nested for loop by a global parameter", // Description
                     1, // One mutation type
                     true
                   ) {}
-    MutatorInAx1(::std::string reportName)
-        : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
-                    "mutator_inax1", // String identifier
-                    "Replaces exact sum with inexact sum based on InAx1 cell", // Description
-                    1, // One mutation type
-                    true
-                  ), reportName(reportName) {}
     virtual clang::ast_matchers::StatementMatcher getStatementMatcher() override; // Need to override this method, first part of matching rules
     virtual bool match ( const ::chimera::mutator::NodeType &node ) override; // Also this one, second part of matching rules
     virtual bool getMatchedNode ( const chimera::mutator::NodeType &,
@@ -80,13 +67,12 @@ public:
     virtual void onCreatedMutant(const ::std::string&) override;
 
 private:
-      unsigned int operationCounter;  ///< Counter to keep tracks of done mutations
+      unsigned int operationCounter = 0;  ///< Counter to keep tracks of done mutations
       ::std::vector<MutationInfo> mutationsInfo;  ///< It maintains info about mutations, in order to be saved
-      ::std::string reportName = "inax1_report";
 };
 
 /// \}
-} // end namespace chimera::inax1
+} // end namespace chimera::axdct
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_INAX1_MUTATORS_H */
+#endif /* INCLUDE_OPERATORS_AXDCT_MUTATORS_H */
