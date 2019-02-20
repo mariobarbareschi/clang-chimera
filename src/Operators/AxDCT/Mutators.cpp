@@ -37,6 +37,7 @@ using namespace clang;
 using namespace clang::ast_matchers;
 using namespace chimera;
 using namespace chimera::mutator;
+using namespace chimera::log;
 using namespace clang::ast_type_traits;
 
 #define PARENT_NODE_TYPE(res_matcher, child)                                   \
@@ -137,15 +138,26 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
       
     //////////////////////////////////////////////////////////////////////////////////////////
     // Debug
-    DEBUG(::llvm::dbgs()  << "****************************************************"
-                            "****\nDump for loop:\n");
-    DEBUG(::llvm::dbgs()  << "Statement: "
-                          << rw.getRewrittenText(forStmt->getSourceRange()) << "]\n");
-    DEBUG(::llvm::dbgs()  << "Condition: "            << condString << "\n");
-    DEBUG(::llvm::dbgs()  << "Condition Variable: "   << condVariableString << "\n");
-    DEBUG(::llvm::dbgs()  << "Mutate condition in: "  << condReplacement << "\n");
-    DEBUG(::llvm::dbgs()  << "Elements in report: "  << this->mutationsInfo.size() << "\n");
-    DEBUG(::llvm::dbgs()  << "****************************************************\n\n");
+    char debug_info[500];
+
+    ChimeraLogger::verbose("***************************************************\nDump for loop:");
+
+    sprintf(debug_info,"Statement: %s", rw.getRewrittenText(forStmt->getSourceRange()).c_str());
+    ChimeraLogger::verbose(debug_info);
+    
+    sprintf(debug_info, "Condition: %s", condString.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    sprintf(debug_info, "Condition Variable: %s", condVariableString.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    sprintf(debug_info, "Condition Variable: %s", condVariableString.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    sprintf(debug_info, "Mutate condition in: %s", condReplacement.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    ChimeraLogger::verbose("****************************************************\n");
 
     ////////////////////////////////////////////////////////////////////////////////////////// 
 
@@ -165,25 +177,34 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
     
     //////////////////////////////////////////////////////////////////////////////////////////
 
-    // * Line location
-    FullSourceLoc innerLoc(forStmt->getSourceRange().getBegin(), *(node.SourceManager));
-    mutationInfo.line = innerLoc.getSpellingLineNumber();
-
+    //[FIXME: Nel csv dovrebbe andare una riga per ogni baseID]
     // Save info into the report
-    this->mutationsInfo.push_back(mutationInfo);
+    /*FullSourceLoc innerLoc(forStmt->getSourceRange().getBegin(), *(node.SourceManager));
+    mutationInfo.line = innerLoc.getSpellingLineNumber();
+    this->mutationsInfo.push_back(mutationInfo);*/
+
     //////////////////////////////////////////////////////////////////////////////////////////
   
     //////////////////////////////////////////////////////////////////////////////////////////
     // Debug
-    DEBUG(::llvm::dbgs()  << "****************************************************"
-                            "****\nDump inner for loop:\n");
-    DEBUG(::llvm::dbgs()  << "Statement: "
-                          << rw.getRewrittenText(forStmt->getSourceRange()) << "]\n");
-    DEBUG(::llvm::dbgs()  << "Condition: "            << innerCondString << "\n");
-    DEBUG(::llvm::dbgs()  << "Condition Variable: "   << innerCondVariableString << "\n");
-    DEBUG(::llvm::dbgs()  << "Mutate condition in: "  << condReplacement << "\n");
-    DEBUG(::llvm::dbgs()  << "Elements in report: "  << this->mutationsInfo.size() << "\n");
-    DEBUG(::llvm::dbgs()  << "****************************************************\n\n");
+    ChimeraLogger::verbose("***************************************************\nDump inner for loop:");
+
+    sprintf(debug_info,"Statement: %s", rw.getRewrittenText(forStmt->getSourceRange()).c_str());
+    ChimeraLogger::verbose(debug_info);
+    
+    sprintf(debug_info, "Condition: %s", innerCondString.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    sprintf(debug_info, "Condition Variable: %s", innerCondVariableString.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    sprintf(debug_info, "Condition Variable: %s", innerCondVariableString.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    sprintf(debug_info, "Mutate condition in: %s", condReplacement.c_str());
+    ChimeraLogger::verbose(debug_info);
+
+    ChimeraLogger::verbose("****************************************************\n");
 
     ////////////////////////////////////////////////////////////////////////////////////////// 
 
@@ -201,10 +222,10 @@ void chimera::axdct::MutatorAxDCT::onCreatedMutant(const ::std::string &mDir) {
   ::llvm::raw_fd_ostream report(mDir + "axdct_report.csv", error, ::llvm::sys::fs::OpenFlags::F_Append);
   ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
 
-  DEBUG(::llvm::dbgs()  << "****************************************************\nStart writing report\n");
+  ChimeraLogger::verbose("****************************************************\nStart writing report");
 
   while( !(this->mutationsInfo.empty()) ){
-    DEBUG(::llvm::dbgs()  << "Writing element...\n");
+    ChimeraLogger::verbose("Writing element...");
 
     MutatorAxDCT::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.baseId << "," << mutationInfo.line 
@@ -213,5 +234,5 @@ void chimera::axdct::MutatorAxDCT::onCreatedMutant(const ::std::string &mDir) {
     this->mutationsInfo.pop_back();
   }
   report.close();
-  DEBUG(::llvm::dbgs()  << "****************************************************\nReport written successfully\n");
+  ChimeraLogger::verbose("****************************************************\nReport written successfully\n");
 }
