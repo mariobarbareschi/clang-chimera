@@ -20,7 +20,7 @@ Clang-chimera will expect LLVM/Clang binaries to be installed in ```/usr/bin```.
 ------------
 Use this section to understand how to install LLVM/Clang 3.9.1 correctly. Note that you will need these packages to be installed:
 * cmake
-* subversion
+* git
 * ninja-build
 * build-essential (gcc, g++ and their libraries)
 * zlib
@@ -31,13 +31,13 @@ Use this section to understand how to install LLVM/Clang 3.9.1 correctly. Note t
 
 Considering Ubuntu  18.04 as development platform, use the following command to install the previous dependencies:
 ```
-$ apt-get install cmake subversion ninja-build build-essential zlib1g-dev libffi-dev libedit-dev libncurses5-dev libboost-dev
+# apt-get install cmake ninja-build build-essential zlib1g-dev libffi-dev libedit-dev libncurses5-dev libboost-dev
 ```
 Now, you can download LLVM/Clang 3.9.1 from source and build it.
 ```
-$ svn co -q http://llvm.org/svn/llvm-project/llvm/tags/RELEASE_391/final llvm
+$ git clone -b release_39 https://github.com/llvm-mirror/llvm.git llvm
 $ cd llvm/tools
-$ svn co -q http://llvm.org/svn/llvm-project/cfe/tags/RELEASE_391/final clang
+$ git clone -b release_39 https://github.com/llvm-mirror/clang.git clang
 $ mkdir ../build && cd ../build
 $ CC=gcc CXX=g++ cmake -DLLVM_ENABLE_CXX1Y=true -DLLVM_ENABLE_RTTI=ON -DLLVM_TARGET_ARCH="X86" -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_ENABLE_FFI=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -G Ninja ..
 $ ninja && sudo ninja install
