@@ -169,6 +169,12 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     BinaryOperator *bop   = (BinaryOperator*) node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
     Expr *internalLhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("lhs");
     Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
+
+    // Add InexactAdders inclusion
+    if(templDecl != NULL) 
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
+    else                  
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
     
   do{
     
