@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3)
 project("Clang-Chimera" VERSION 0.1 LANGUAGES C CXX)
-cmake_policy(SET CMP0079 NEW)
+if(POLICY CMP0079)
+  cmake_policy(SET CMP0079 NEW)
+endif()
 # Requirements
 ## Require Include-What-You-Use
 set(IWYU OFF CACHE BOOL "If enable the include-what-you-use program")
