@@ -19,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 /// \file Operators.cpp
-/// \author Federico Iannucci
+/// \author Andrea Aletto
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
@@ -30,10 +30,9 @@
 chimera::inax1::getInAx1Operator() {
   ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
       new ::chimera::m_operator::MutationOperator(
-          "InAx1-Operator",   // Operator identifier
+          "InAx1-Operator",   // Operator identifier to use into the conf.csv
           "Approximate adder cell operator InAx1", // Description
-          true) // It is NOT a HOM Operator (default:false). It could be
-                 // omitted.
+          true) // It is a HOM Operator
       );
 
   // Add mutators to the current operator

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3)
 project("Clang-Chimera" VERSION 0.1 LANGUAGES C CXX)
-
+if(POLICY CMP0079)
+  cmake_policy(SET CMP0079 NEW)
+endif()
 # Requirements
 ## Require Include-What-You-Use
 set(IWYU OFF CACHE BOOL "If enable the include-what-you-use program")
@@ -23,9 +25,25 @@ endif(IWYU)
 # Require C++11 features
 set(CMAKE_CXX_STANDARD 11)
 set(CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BUILD_TYPE Debug)
-#SET(GCC_COVERAGE_COMPILE_FLAGS "-Wfatal-errors")
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wno-format-truncation")
+
+else()
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -Wextra -ggdb3 -O0 --coverage")
+
+    endif()
+    
+endif() 
+
 # Required packages
 ## Require LLVM and Clang
 find_package(LLVM 3.9.1 REQUIRED CONFIG)

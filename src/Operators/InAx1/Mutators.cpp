@@ -19,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 /// \file Mutators.cpp
-/// \author Federico Iannucci
+/// \author Andrea Aletto
 /// \brief This file contains sample mutators
 //===----------------------------------------------------------------------===//
 
@@ -31,10 +31,20 @@
 #include "llvm/Support/ErrorHandling.h"
 #include <iostream>
 
-#define DEBUG_TYPE "mutator_iideaa"
+#define DEBUG_TYPE "mutator_inax1"
 
 using namespace clang;
 using namespace clang::ast_matchers;
+using namespace chimera;
+using namespace chimera::mutator;
+using namespace clang::ast_type_traits;
+using namespace chimera::log;
+
+#define PARENT_NODE_TYPE(res_matcher, child)                                   \
+  (res_matcher.Context->getParents(*child))[0].getNodeKind().asStringRef()
+
+#define GET_PARENT_NODE(res_matcher, child, casting_type)                      \
+  ((res_matcher.Context->getParents(*child))[0]).get<casting_type>()
 
 #define XHS_INTERNAL_MATCHER(id)                                               \
   ignoringParenImpCasts(expr().bind(                                           \
@@ -49,362 +59,299 @@ using namespace clang::ast_matchers;
               ignoringParenImpCasts(                                           \
                   castExpr(has(expr(XHS_INTERNAL_MATCHER(id)))))))
 
-// static ::std::string mapOpCode(::clang::BinaryOperator::Opcode code) {
-//   ::std::string retString = "";
-//   switch (code) {
-//   case BO_Add:
-//   case BO_AddAssign:
-//     retString = "ADD";
-//     break;
-//   case BO_Sub:
-//   case BO_SubAssign:
-//     retString = "SUB";
-//     break;
-//   case BO_Mul:
-//   case BO_MulAssign:
-//     retString = "MUL";
-//     break;
-//   case BO_Div:
-//   case BO_DivAssign:
-//     retString = "DIV";
-//     break;
-//   default:
-//     llvm_unreachable("OpCode unsupported");
-//   }
-//   return retString;
-// }
 
-// static ::std::string castFlapFloat(const ::std::string &xhs,
-//                                    const ::std::string &opType,
-//                                    const ::std::string &precId) {
-//   return "(" + opType + ")(::fap::FloatingPointType(" + "(" + opType + ") " +
-//          xhs + ", " + precId + "))";
-// }
-
-/// @brief Apply the casting logic on a hand side
-/// @param rw Rewriter
-/// @param xhs Hand side to cast
-/// @param type Cast type
-/// @param precId FLAP specific parameter
-// static void castFlapFloat(Rewriter &rw, const Expr *xhs,
-//                           const ::std::string &type,
-//                           const ::std::string &precId) {
-//   SourceRange range = xhs->getSourceRange();
-//   rw.InsertTextBefore(range.getBegin(), "(" + type +
-//                                             ")(::fap::FloatingPointType(" +
-//                                             "(" + type + ") ");
-//   rw.InsertTextAfterToken(range.getEnd(), ", " + precId + "))");
-// }
 /// \brief It is used to retrieve the node, it hides the binding string.
 ///        In Mutator.h there is code template snippet that should be fine for
 ///        all the majority of the cases.
-bool chimera::inax1::MutatorInAx1::getMatchedNode(
-    const chimera::mutator::NodeType &node,
-    clang::ast_type_traits::DynTypedNode &dynNode) {
-  const BinaryOperator *Op = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-  assert(Op && "BinaryOperator is nullptr");
-  if (Op != nullptr) {
-    dynNode = ast_type_traits::DynTypedNode::create(*Op);
+bool chimera::inax1::MutatorInAx1::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
+  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
+  assert(bop && "BinaryOperator is nullptr");
+  if (bop != nullptr) {
+    dynNode = DynTypedNode::create(*bop);
     return true;
   } else
     return false;
 }
 
-/// \brief This method returns the statement matcher to match the binary
-/// operation
-::clang::ast_matchers::StatementMatcher
-chimera::inax1::MutatorInAx1::getStatementMatcher() {
-  // It has to match a binary operation with a specific operator name (>). In
-  // order to retrieve the match, it is necessary to bind a string in this case
-  // "op".
-  // But we want to avoid matches in for loops, so in this phase the mather has
-  // to gather information about the surroundings, i.e. if the binary operation
-  // is inside a for loop, this is done checking the ancestor. Such condition is
-  // OPTIONAL, indeed it is used a little trick using anything.
+/// \brief  This method implements the coarse grained matching rules,
+///         returning the statement matcher to match the binary
+///         operation
+StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
+  // It has to match a binary operation with a specific operator name (+) and 
+  // specific operands (int, int).
+  // In order to retrieve the match, it is necessary to bind a string in this 
+  // case "inax1_op".
   return stmt(
-    binaryOperator(hasOperatorName("+"),
-      hasRHS(XHS_MATCHER("int", "rhs"))
-    ).bind("inax1_op"),
-    
-    binaryOperator(hasOperatorName("+"),
+    binaryOperator(
+      anyOf(hasOperatorName("+"), hasOperatorName("-")),
+      hasRHS(XHS_MATCHER("int", "rhs")),
       hasLHS(XHS_MATCHER("int", "lhs"))
-    ).bind("inax1_op")
+    ).bind("inax1_op"),
+
+    unless(
+          anyOf(
+            hasAncestor(callExpr()), //uncomment to avoid mutation of input parameters of a function call
+            hasAncestor(arraySubscriptExpr()))
+    )
   );
 }
 
-/// \brief This method implements the fine grained matching rules, indeed it is
-///        not possible in an easy way to specify that the node matched it has
-///        not to be part of the condition expression of a for statement
-bool chimera::inax1::MutatorInAx1::match(
-    const ::chimera::mutator::NodeType &node) {
-  // First operation: Retrieve the node
-  const BinaryOperator *bop =
-      node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-  assert(bop && "BinaryOperator is nullptr");
+/// \brief  This method implements the fine grained matching rules, because it is
+///         not possible in an easy way to specify that the node matched has
+///         to be the last "+"" operator of a chain of adds.
+///         In other words we want that for a statement of "x+y+z+t" the matched
+///         node has to be the last + (that one between z and t).
+bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
 
-  // // In order to see if the operation is not part of the condition expression,
-  // // it is simply checked if the operation position is not in the range of such
-  // // expression
-  // SourceRange bopRange = bop->getSourceRange();
-  // // IF a construct has been matched
-  // // If stmt
-  // const ForStmt *forStmt = node.Nodes.getNodeAs<ForStmt>("forStmt");
-  // // Check if there is forStmt
-  // if (forStmt != nullptr) {
-  //   // Check if it is inside the ExpressionCondition range
-  //   if (bopRange.getBegin().getRawEncoding() >=
-  //           forStmt->getCond()->getSourceRange().getBegin().getRawEncoding() &&
-  //       bopRange.getEnd().getRawEncoding() >=
-  //           forStmt->getCond()->getSourceRange().getEnd().getRawEncoding()) {
-  //     // The match is invalid, return false
-  //     return false;
-  //   }
-  // }
-
-  // At this point the match is still valid, return true
-  return true;
-}
-
-::clang::Rewriter &chimera::inax1::MutatorInAx1::mutate(
-    const ::chimera::mutator::NodeType &node,
-    ::chimera::mutator::MutatorType type, ::clang::Rewriter &rw) {
-
-    // Common operations
-    const FunctionDecl *funDecl =
-        node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
-    // Set the operation number
-    unsigned int bopNum = this->operationCounter++;
-    // Local rewriter to holds the original code
-    Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
-
-    // Retrieve binary operation, left and right hand side
+    // First operation: Retrieve the node
     const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
-  
+    assert(bop && "BinaryOperator is nullptr");
+
+    // Second operation: extract lhs and rhs
     const Expr *internalLhs = node.Nodes.getNodeAs<Expr>("lhs");
     const Expr *internalRhs = node.Nodes.getNodeAs<Expr>("rhs");
-    const Expr *lhs = bop->getLHS()->IgnoreCasts();
-    const Expr *rhs = bop->getRHS()->IgnoreCasts();
+    const Expr *lhs = bop->getLHS()->IgnoreCasts()->IgnoreParens();
+    const Expr *rhs = bop->getRHS()->IgnoreCasts()->IgnoreParens();
+    assert(internalLhs && "internalLhs is nullptr");
+    assert(internalRhs && "internalRhs is nullptr");
 
-    assert (bop && "BinaryOperator is nullptr"); 
-    assert(internalLhs && "LHS is nullptr");
-    assert(internalRhs && "RHS is nullptr");
+    //FIXME: check that internalXhs is not a + and not only a binary operator
+    bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(lhs);
+    bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(rhs);
 
-    ::std::string nabId = "nab_" + ::std::to_string(bopNum);
-    // TODO: Add operation type
-    // Add to the additional compile commands
-    //  this->additionalCompileCommands.push_back("-D" + nabId);
-
-    ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
-    ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
+    // Third operation: discard match if Xhs is a +
+    if (isLhsBinaryOp){
+        if( (((BinaryOperator*)lhs)->getOpcodeStr() == "+") ||
+             ((BinaryOperator*)lhs)->getOpcodeStr() == "-") return false;
+    }
+    
+    if (isRhsBinaryOp){
+        if( (((BinaryOperator*)rhs)->getOpcodeStr() == "+") ||
+             ((BinaryOperator*)lhs)->getOpcodeStr() == "-") return false;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
-    DEBUG(::llvm::dbgs() << "****************************************************"
-                            "****\nDump binary operation:\n");
-    DEBUG(::llvm::dbgs() << "Operation: "
-                        << rw.getRewrittenText(bop->getSourceRange()) << " ==> ["
-                        << bop->getOpcodeStr() << "]\n");
-    DEBUG(::llvm::dbgs() << "LHS: " << lhsString << "\n");
-    DEBUG(::llvm::dbgs() << "RHS: " << rhsString << "\n");
-    ////////////////////////////////////////////////////////////////////////////////////////////
+    char log_string[500];
+    Rewriter rw(*(node.SourceManager), node.Context->getLangOpts());
+    ChimeraLogger::verbose("********************************************************\nMatched operation:");
+
+    sprintf(log_string, "Operation: %s ==> [%s]", rw.getRewrittenText(bop->getSourceRange()).c_str(),bop->getOpcodeStr().str().c_str());
+    ChimeraLogger::verbose(log_string);
+
+    sprintf(log_string, "LHS: %s", rw.getRewrittenText(lhs->getSourceRange()).c_str());
+    ChimeraLogger::verbose(log_string);
+
+    sprintf(log_string, "RHS: %s\n", rw.getRewrittenText(rhs->getSourceRange()).c_str());
+    ChimeraLogger::verbose(log_string);
+    //////////////////////////////////////////////////////////////////////////////////////////// 
+
+    if(rw.getRewrittenText(lhs->getSourceRange()) == "") return false;
+    if(rw.getRewrittenText(rhs->getSourceRange()) == "") return false;
+
+    return true;
+}
+
+Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
+
+    char log_info[500];
+
+    // Retrieve a pointer to function declaration (or template function declaration) to insert global variables before it
+    const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
+    const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
+
+    // Set the operation number
+    unsigned int bopNum = this->operationCounter++;
+    // Local rewriter to hold the original code
+    Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
+
+    // Retrieve binary operation, left and right hand side
+    BinaryOperator *bop   = (BinaryOperator*) node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
+    Expr *internalLhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("lhs");
+    Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
+
+    // Add InexactAdders inclusion
+    if(templDecl != NULL) 
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
+    else                  
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
+    
+  do{
+    
+    Expr *lhs             = (Expr*)           bop->getLHS()->IgnoreCasts();
+    Expr *rhs             = (Expr*)           bop->getRHS()->IgnoreCasts();
+
+    bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(lhs);
+    bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(rhs);
+
+    // Assert that binary operator and Xhs are not null
+    assert (bop && "BinaryOperator is nullptr"); 
+    assert (lhs && "LHS is nullptr");
+    assert (rhs && "RHS is nullptr");
 
     // Create a global var before the function
-    rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
-    //rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "::fap::FloatPrecTy " + nabId + "(8,23);\n");
-    
-    bool isLhsBinaryOp = ::llvm::isa<BinaryOperator>(internalLhs);
-    bool isRhsBinaryOp = ::llvm::isa<BinaryOperator>(internalRhs);
-    ::std::string retVar = "NULL";
+    ::std::string nabId = "nab_" + ::std::to_string(bopNum++);
 
-  // Replace all the text of the binary operator, substituting the operation
-  // (which bind lhs and rhs) with the replacement
-    ::std::string bopReplacement = "inax1_sum(" + nabId + "," + lhsString + "," + rhsString + ")";
-    rw.ReplaceText(bop->getSourceRange(), bopReplacement);
-    //rw.InsertTextBefore(funDecl->getSourceRange().getEnd(), bopReplacement);
+    if(templDecl != NULL) 
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
+    else                  
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "int " + nabId + " = 0;\n");
 
-      // Get return variable name, if exists
-      const BinaryOperator *assignOp =
-          node.Nodes.getNodeAs<BinaryOperator>("externalAssignOp");
-      if (assignOp != nullptr) {
-        // Some assign operation has been matched, narrow down to the really
-        // interesting
-        // The bop MUST be its RHS
-        if (assignOp->getRHS()->IgnoreCasts()->IgnoreParenImpCasts() == bop) {
-          ///////////////////////////////////////////////////////////////////////////////
-          /// DEBUG
-          DEBUG(::llvm::dbgs() << "External assignment operation: "
-                              << rw.getRewrittenText(assignOp->getSourceRange())
-                              << "\n");
-          ///////////////////////////////////////////////////////////////////////////////
-          // Check if it is a DeclRef expression
-          if (::llvm::isa<DeclRefExpr>(assignOp->getLHS())) {
-            retVar = ((const DeclRefExpr *)(assignOp->getLHS()))
-                        ->getNameInfo()
-                        .getName()
-                        .getAsString();
-          }
-        }
-      }
-    
+    // Retrieve the name of the operands
+    ::std::string lhsString       = rw.getRewrittenText(lhs->getSourceRange());
+    ::std::string rhsString       = rw.getRewrittenText(rhs->getSourceRange());
+    ::std::string operationString = ""; 
+    if( bop->getOpcodeStr() == "+" ){
+      operationString = "false";
+    } else if( bop->getOpcodeStr() == "-" ){
+      operationString = "true";
+    } else {
+      operationString = "UNDEFINED";
+    }
 
-    // Store mutations info:
+    // Start collecting information for the report (everything but the return variable):
     MutatorInAx1::MutationInfo mutationInfo;
+
     // * Operation Identifier
     mutationInfo.nabId = nabId;
+
     // * Line location
     FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
-    // * Return type
-    mutationInfo.opRetTy = "opRetType";
-    // * Operation type
-    mutationInfo.opTy = bop->getOpcode();
+
     // * Information about operands:
     // ** LHS
-    ::std::string oriLHS = rw.getRewrittenText(internalLhs->getSourceRange());
-    ::std::replace(oriLHS.begin(), oriLHS.end(), '\n', ' ');
-    oriLHS.erase(remove_if(oriLHS.begin(), oriLHS.end(), ::isspace),
-                oriLHS.end());
-    mutationInfo.op1 = oriLHS;
+    mutationInfo.op1 = lhsString;
     mutationInfo.op1OpTy = NoOp;
     if (isLhsBinaryOp) {
       mutationInfo.op1OpTy = ((const BinaryOperator *)internalLhs)->getOpcode();
     }
+
     // ** RHS
-    ::std::string oriRHS = rw.getRewrittenText(internalRhs->getSourceRange());
-    ::std::replace(oriRHS.begin(), oriRHS.end(), '\n', ' ');
-    oriRHS.erase(remove_if(oriRHS.begin(), oriRHS.end(), ::isspace),
-                oriRHS.end());
-    mutationInfo.op2 = oriRHS;
+    mutationInfo.op2 = rhsString;
     mutationInfo.op2OpTy = NoOp;
     if (isRhsBinaryOp) {
       mutationInfo.op2OpTy = ((const BinaryOperator *)internalRhs)->getOpcode();
     }
-    // ** Return variable, if exists
-    mutationInfo.retOp = retVar;
 
+    // ** Return variable (placeholder)
+    mutationInfo.retOp = "NULL";
+
+    // Form the replacing string
+    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ")";
+      
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    /// Debug
+    ChimeraLogger::verbose("********************************************************\nDump binary operation:");
+
+    sprintf(log_info, "Operation: %s  ==> [%s]",rw.getRewrittenText(bop->getSourceRange()).c_str(),bop->getOpcodeStr().str().c_str());
+    ChimeraLogger::verbose(log_info);
+
+    sprintf(log_info, "LHS: %s", lhsString.c_str());
+    ChimeraLogger::verbose(log_info);
+
+    sprintf(log_info, "RHS: %s", rhsString.c_str());
+    ChimeraLogger::verbose(log_info);
+
+    sprintf(log_info, "Mutation in: %s\n", bopReplacement.c_str());
+    ChimeraLogger::verbose(log_info);
+
+    //////////////////////////////////////////////////////////////////////////////////////////// 
+
+    // Replace all the text of the binary operator with a function call
+    rw.ReplaceText(bop->getSourceRange(), bopReplacement); 
+
+    // Stop if the current node (bop) has no parents
+    if( node.Context->getParents(*bop).empty() ) { 
+      ChimeraLogger::verbose("No more parents. Exiting\n");
+      break; 
+    }
+
+    // Retrieve parent type
+    std::string parentType = PARENT_NODE_TYPE(node, bop);
+
+    if(parentType == "BinaryOperator"){
+      // If the parent is a BinaryOperator then assign to bop its parent
+      ChimeraLogger::verbose("Parent is a BOP\n");
+      bop = (BinaryOperator*)(GET_PARENT_NODE(node, bop, BinaryOperator));
+
+    } else if((parentType == "ParenExpr")){
+      // If the parent is a parenthesis node then retrieve it and traverse up the ast
+      // till the next non-parenthesis node. 
+      ParenExpr* parens = (ParenExpr*)(GET_PARENT_NODE(node, bop, ParenExpr));
+      while( ( PARENT_NODE_TYPE(node, parens) == "ParenExpr") ){
+          parens = (ParenExpr*)(GET_PARENT_NODE(node, parens, ParenExpr));
+      }
+      ChimeraLogger::verbose("Parens skipped successfully.\n");
+
+      // If the content of parenthesis is not a BinaryOperator then exit else assign
+      // parenthesis content to bop
+      if( (PARENT_NODE_TYPE(node, parens) != "BinaryOperator") ) {
+        sprintf(log_info, "WARNING: Unexpected parens content of type [%s]. Exiting...\n", PARENT_NODE_TYPE(node, parens).str().c_str());
+        ChimeraLogger::verbose(log_info);
+        bop = NULL;
+      } else bop = (BinaryOperator*)(GET_PARENT_NODE(node, parens, BinaryOperator));
+
+    } else if((parentType == "FunDecl") || (parentType == "VarDecl") || (parentType == "ImplicitCastExpr")){
+      // If the parent is a FunDecl or a VarDecl then exit
+      ChimeraLogger::verbose("Function o Variable Declaration reached. Exiting...\n");
+      bop = NULL;
+
+    } else {
+      // If the parent is not one of the previous IFs, then exit and print the unexpected type
+      sprintf(log_info, "WARNING: Unexpected parent of type [%s]. Exiting...\n", parentType.c_str());
+      ChimeraLogger::verbose(log_info);
+      bop = NULL;
+    }
+
+    if( bop && (bop->getOpcodeStr()) == "=" ){
+      // Get return variable name, if exists
+      
+      // Check if it is a DeclRef expression
+      if (::llvm::isa<DeclRefExpr>(bop->getLHS())) {
+        mutationInfo.retOp = ((const DeclRefExpr *)(bop->getLHS()))
+                    ->getNameInfo()
+                    .getName()
+                    .getAsString();
+      }
+        
+      // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
+      // and it's a =, then exit 
+      sprintf(log_info, "BOP opcod is [%s]. Exiting...\n", bop->getOpcodeStr().str().c_str());
+      ChimeraLogger::verbose(log_info);
+      bop = NULL;
+    }
+
+    // Save info into the report
     this->mutationsInfo.push_back(mutationInfo);
+  } while(bop != NULL);
 
-    DEBUG(::llvm::dbgs() << rw.getRewrittenText(bop->getSourceRange()) << "\n");
+    this->operationCounter = bopNum;
+
     return rw;
 
 
 }
 
-void chimera::inax1::MutatorInAx1::onCreatedMutant(
-    const ::std::string &mDir) {
+void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
   // Create a specific report inside the mutant directory
+
   ::std::error_code error;
-  ::llvm::raw_fd_ostream report(mDir + "inax1_report.csv", error,
-                                ::llvm::sys::fs::OpenFlags::F_Text);
-  // Resolve operand/operation information, substituting the binary operator
-  // with the code of the I type operation
-  // This operation, due to the unknown order of processing, has to be performed
-  // here
-  // Make a copy to always read the old operand string
-  // FIXME: Check also operation type -> store binaryOperator pointer to
-  // compare?
-  ::std::vector<MutationInfo> cMutationsInfo = this->mutationsInfo;
-  for (auto &mI : cMutationsInfo) {
-    if (mI.op1OpTy != NoOp) {
-      // Operand 1 is a binary operation
-      // Search in all info
-      for (const auto &mII : this->mutationsInfo) {
-        // Check that isn't the same mutationInfo
-        if (mII.nabId != mI.nabId) {
-          // Search both operand inside mI.op1, if they are both found AND
-          // the operation between them is mII.opTy there is a match.
-          // Search from the end of op1 and begin of op2 the OpcodeStr of mII
-          auto op1inOp = ::std::search(mI.op1.begin(), mI.op1.end(),
-                                       mII.op1.begin(), mII.op1.end());
-          auto op2inOp = ::std::search(mI.op1.begin(), mI.op1.end(),
-                                       mII.op2.begin(), mII.op2.end());
-          if (op1inOp != mI.op1.end() && op2inOp != mI.op1.end() &&
-              ::std::find(op1inOp + mII.op1.size() - 1, op2inOp,
-                          BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
-                  mI.op1.end()) {
-            DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op1
-                                 << " IS Operation: " << mII.nabId << "\n");
-            mI.op1 = mII.nabId; // found the new label
-            break;
-          }
-        }
-      }
-    }
-    if (mI.op2OpTy != NoOp) {
-      // Operand 2 is a binary operation
-      // Search in all info
-      for (const auto &mII : this->mutationsInfo) {
-        // Check that isn't the same mutationInfo
-        if (mII.nabId != mI.nabId) {
-          // Search both operand inside mI.op1, if they are both found AND
-          // the operation between them is mII.opTy there is a match.
-          // Search from the end of op1 and begin of op2 the OpcodeStr of mII
-          auto op1inOp = ::std::search(mI.op2.begin(), mI.op2.end(),
-                                       mII.op1.begin(), mII.op1.end());
-          auto op2inOp = ::std::search(mI.op2.begin(), mI.op2.end(),
-                                       mII.op2.begin(), mII.op2.end());
-          if (op1inOp != mI.op2.end() && op2inOp != mI.op2.end() &&
-              ::std::find(op1inOp + mII.op1.size() - 1, op2inOp,
-                          BinaryOperator::getOpcodeStr(mII.opTy).data()[0]) !=
-                  mI.op1.end()) {
-            DEBUG(::llvm::dbgs() << "Operand/operation: " << mI.op2
-                                 << " IS Operation: " << mII.nabId << "\n");
-            mI.op2 = mII.nabId; // found the new label
-            break;
-          }
-        }
-      }
-    }
-  }
+  ::llvm::raw_fd_ostream report(mDir + this->reportName + ".csv", error, ::llvm::sys::fs::OpenFlags::F_Append);
 
-  // Now resolve the retVar, that is where an operation produce a retVar that is
-  // used as input in a
-  // following operation, the two are dependant. So the input var of the latter
-  // operation can be substituted
-  // with the operationId of the first.
-  // The entries are ordered as location of occurrence, starting from the end it
-  // is necessary to see if
-  // an operand that is not a binary operation occurrs as retVar of previous
-  // operation
-  for (auto rIt = cMutationsInfo.rbegin(), rEnd = cMutationsInfo.rend();
-       rIt != rEnd; ++rIt) {
-    // Operand 1
-    if (rIt->op1OpTy == NoOp) {
-      auto &localOp = rIt->op1;
-      // loop on the remaining operation
-      for (auto rIt2 = rIt + 1; rIt2 != rEnd; rIt2++) {
-        // Check if operand 1 is a retVar for anyone of them
-        if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
-          DEBUG(::llvm::dbgs() << "Operand: " << localOp
-                               << " IS Operation: " << rIt2->nabId << "\n");
-          localOp = rIt2->nabId; // new label
-          break;
-        }
-      }
-    }
-    if (rIt->op2OpTy == NoOp) {
-      // Operand 2
-      auto &localOp = rIt->op2;
-      // loop on the remaining operation
-      for (auto rIt2 = rIt + 1; rIt2 != rEnd; rIt2++) {
-        // Check if operand 1 is a retVar for anyone of them
-        if (rIt2->retOp != "NULL" && localOp == rIt2->retOp) {
-          DEBUG(::llvm::dbgs() << "Operand: " << localOp
-                               << " IS Operation: " << rIt2->nabId << "\n");
-          localOp = rIt2->nabId; // new label
-          break;
-        }
-      }
-    }
-  }
+  ChimeraLogger::verbose("****************************************************\nStart writing report");
 
-  // for (const auto& mutationInfo : this->mutationsInfo) {
-  for (const auto &mutationInfo : cMutationsInfo) {
+  while( !(this->mutationsInfo.empty()) ){
+    ChimeraLogger::verbose("Writing element...");
+
+    MutatorInAx1::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.nabId << "," << mutationInfo.line << ","
-           << mutationInfo.opRetTy << "," << "OPTYPE" << ","
            << "\"" << mutationInfo.op1 << "\","
            << "\"" << mutationInfo.op2 << "\","
            << "\"" << mutationInfo.retOp << "\"\n";
+
+    this->mutationsInfo.pop_back();
   }
   report.close();
+  ChimeraLogger::verbose("****************************************************\nReport written successfully");
 }
