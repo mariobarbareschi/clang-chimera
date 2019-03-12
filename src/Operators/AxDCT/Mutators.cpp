@@ -142,22 +142,22 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
 
     ChimeraLogger::verbose("***************************************************\nDump for loop:");
 
-    sprintf(debug_info,"Statement: %s", rw.getRewrittenText(forStmt->getSourceRange()).c_str());
-    ChimeraLogger::verbose(debug_info);
-    
-    sprintf(debug_info, "Condition: %s", condString.c_str());
-    ChimeraLogger::verbose(debug_info);
-
-    sprintf(debug_info, "Condition Variable: %s", condVariableString.c_str());
-    ChimeraLogger::verbose(debug_info);
-
-    sprintf(debug_info, "Condition Variable: %s", condVariableString.c_str());
-    ChimeraLogger::verbose(debug_info);
-
-    sprintf(debug_info, "Mutate condition in: %s", condReplacement.c_str());
-    ChimeraLogger::verbose(debug_info);
-
-    ChimeraLogger::verbose("****************************************************\n");
+    // sprintf(debug_info,"Statement: %s", rw.getRewrittenText(forStmt->getSourceRange()).c_str());
+    // ChimeraLogger::verbose(debug_info);
+    // 
+    // sprintf(debug_info, "Condition: %s", condString.c_str());
+    // ChimeraLogger::verbose(debug_info);
+// 
+    // sprintf(debug_info, "Condition Variable: %s", condVariableString.c_str());
+    // ChimeraLogger::verbose(debug_info);
+// 
+    // sprintf(debug_info, "Condition Variable: %s", condVariableString.c_str());
+    // ChimeraLogger::verbose(debug_info);
+// 
+    // sprintf(debug_info, "Mutate condition in: %s", condReplacement.c_str());
+    // ChimeraLogger::verbose(debug_info);
+// 
+    // ChimeraLogger::verbose("****************************************************\n");
 
     ////////////////////////////////////////////////////////////////////////////////////////// 
 
