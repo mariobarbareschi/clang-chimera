@@ -13,10 +13,19 @@ before_install:
 - cd llvm
 - mkdir -p build && cd build
 - CC=gcc CXX=g++ cmake -DLLVM_ENABLE_CXX1Y=true -DLLVM_ENABLE_RTTI=ON -DLLVM_TARGET_ARCH="X86" -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_ENABLE_FFI=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -G Ninja ..
-install:
 - ninja && sudo ninja install
-- sudo sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
 - cd ../..
+- sudo apt remove --purge --auto-remove cmake
+- apt purge --auto-remove cmake
+- wget https://github.com/Kitware/CMake/releases/download/v3.14.0-rc4/cmake-3.14.0-rc4.tar.gz
+- tar xvfz cmake-3.14.0-rc4.tar.gz
+- cd cmake-3.14.0
+- ./bootstrap
+- make -j4 && sudo make install
+- cmake --version
+- cd ..
+install:
+- sudo sed -i 's/list(APPEND link_components "jit")/list(APPEND link_components "mcjit")/g' /usr/lib/cmake/llvm/LLVM-Config.cmake
 - chmod +x run_cmake
 - ./run_cmake
 - cd build
