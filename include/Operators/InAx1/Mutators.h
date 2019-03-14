@@ -80,7 +80,8 @@ public:
     virtual void onCreatedMutant(const ::std::string&) override;
 
 private:
-      unsigned int operationCounter;  ///< Counter to keep tracks of done mutations
+      unsigned int nabCounter;  ///< Counter to keep tracks of done mutations
+      unsigned int cellTypeCounter;
       ::std::vector<MutationInfo> mutationsInfo;  ///< It maintains info about mutations, in order to be saved
       ::std::string reportName = "inax1_report";
 };

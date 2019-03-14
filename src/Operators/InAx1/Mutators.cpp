@@ -161,7 +161,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
 
     // Set the operation number
-    unsigned int bopNum = this->operationCounter++;
+    unsigned int bopNum = this->nabCounter++;
     // Local rewriter to hold the original code
     Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
 
@@ -170,11 +170,36 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     Expr *internalLhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("lhs");
     Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
 
-    // Add InexactAdders inclusion
-    if(templDecl != NULL) 
+    std::string cellId = "cellType_" + ::std::to_string(this->cellTypeCounter++);
+    std::string cellStr = "InexactAdderType ";
+    cellStr.append(cellId);
+    cellStr.append(" = InAx1;\n");
+
+    // Add InexactAdders inclusion and cellType
+    if(templDecl != NULL) {
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), cellStr.c_str());
       rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
-    else                  
+
+      // Information for the report:
+      MutatorInAx1::MutationInfo mutationInfo;
+      mutationInfo.nabId = cellId;
+      FullSourceLoc loc(templDecl->getSourceRange().getBegin(), *(node.SourceManager));
+      mutationInfo.line = loc.getSpellingLineNumber();
+      this->mutationsInfo.push_back(mutationInfo);  
+
+    } else {                  
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), cellStr.c_str());  
       rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
+
+      // Information for the report:
+      MutatorInAx1::MutationInfo mutationInfo;
+      mutationInfo.nabId = cellId;
+      FullSourceLoc loc(funDecl->getSourceRange().getBegin(), *(node.SourceManager));
+      mutationInfo.line = loc.getSpellingLineNumber();
+      this->mutationsInfo.push_back(mutationInfo);  
+    }
+
+    
     
   do{
     
@@ -238,7 +263,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     mutationInfo.retOp = "NULL";
 
     // Form the replacing string
-    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ")";
+    ::std::string bopReplacement = "inexactAdder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ", " + cellId + ")";
       
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
@@ -326,7 +351,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     this->mutationsInfo.push_back(mutationInfo);
   } while(bop != NULL);
 
-    this->operationCounter = bopNum;
+    this->nabCounter = bopNum;
 
     return rw;
 

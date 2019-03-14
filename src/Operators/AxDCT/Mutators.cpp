@@ -122,7 +122,7 @@ Rewriter &chimera::axdct::MutatorAxDCT::mutate(const NodeType &node, MutatorType
     ::std::string condReplacement = condVariableString + " < " + baseId; 
 
     //////////////////////////////////////////////////////////////////////////////////////////
-    // nformation for the report:
+    // Information for the report:
     MutatorAxDCT::MutationInfo mutationInfo;
 
     // * Operation Identifier
