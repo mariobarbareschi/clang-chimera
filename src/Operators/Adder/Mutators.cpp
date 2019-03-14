@@ -171,9 +171,9 @@ Rewriter &chimera::adder::MutatorAdder::mutate(const NodeType &node, MutatorType
     Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
 
     std::string cellId = "cellType_" + ::std::to_string(this->cellTypeCounter++);
-    std::string cellStr = "InexactAdderType ";
+    std::string cellStr = "inexact_adders::InexactAdderType ";
     cellStr.append(cellId);
-    cellStr.append(" = InAx1;\n");
+    cellStr.append(" = inexact_adders::InAx1;\n");
 
     // Add InexactAdders inclusion and cellType
     if(templDecl != NULL) {
@@ -263,7 +263,7 @@ Rewriter &chimera::adder::MutatorAdder::mutate(const NodeType &node, MutatorType
     mutationInfo.retOp = "NULL";
 
     // Form the replacing string
-    ::std::string bopReplacement = "inexactAdder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ", " + cellId + ")";
+    ::std::string bopReplacement = "inexact_adders::inexactAdder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ", " + cellId + ")";
       
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
