@@ -25,8 +25,8 @@
 
 #include "Operators/AxDCT/Mutators.h"
 #include "Operators/AxDCT/Operators.h"
-#include "Operators/InAx1/Mutators.h"
-#include "Operators/InAx1/Operators.h"
+#include "Operators/Adder/Mutators.h"
+#include "Operators/Adder/Operators.h"
 
 ::std::unique_ptr<::chimera::m_operator::MutationOperator>
 chimera::axdct::getAxDCTOperator() {
@@ -42,7 +42,7 @@ chimera::axdct::getAxDCTOperator() {
       ::chimera::m_operator::MutatorPtr(new ::chimera::axdct::MutatorAxDCT()));
 
   Op->addMutator(
-      ::chimera::m_operator::MutatorPtr(new ::chimera::inax1::MutatorInAx1("axdct_report")));
+      ::chimera::m_operator::MutatorPtr(new ::chimera::adder::MutatorAdder("axdct_report")));
 
       
 

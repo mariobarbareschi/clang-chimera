@@ -23,14 +23,14 @@
 /// \brief This file contains sample mutators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_INAX1_MUTATORS_H
-#define INCLUDE_OPERATORS_INAX1_MUTATORS_H
+#ifndef INCLUDE_OPERATORS_ADDER_MUTATORS_H
+#define INCLUDE_OPERATORS_ADDER_MUTATORS_H
 
 #include "Core/Mutator.h"
 
 namespace chimera
 {
-namespace inax1
+namespace adder
 {
 
 /// \addtogroup OPERATORS_SAMPLE_MUTATORS Sample Mutators
@@ -40,7 +40,7 @@ namespace inax1
  * @brief This mutator matches the binary relational operator >, and replaces it with
  *        others (at the moment < and <=).
  */
-class MutatorInAx1 : public chimera::mutator::Mutator
+class MutatorAdder : public chimera::mutator::Mutator
 {
     ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
       struct MutationInfo {
@@ -56,17 +56,17 @@ public:
     /**
      * @brief Constuctor
      */
-    MutatorInAx1()
+    MutatorAdder()
         : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
-                    "mutator_inax1", // String identifier
-                    "Replaces exact sum with inexact sum based on InAx1 cell", // Description
+                    "mutator_adder", // String identifier
+                    "Replaces exact sum with inexact sum based on Adder cell", // Description
                     1, // One mutation type
                     true
                   ) {}
-    MutatorInAx1(::std::string reportName)
+    MutatorAdder(::std::string reportName)
         : Mutator ( ::chimera::mutator::StatementMatcherType, // A binary operator is a statement
-                    "mutator_inax1", // String identifier
-                    "Replaces exact sum with inexact sum based on InAx1 cell", // Description
+                    "mutator_adder", // String identifier
+                    "Replaces exact sum with inexact sum based on Adder cell", // Description
                     1, // One mutation type
                     true
                   ), reportName(reportName) {}
@@ -83,11 +83,11 @@ private:
       unsigned int nabCounter;  ///< Counter to keep tracks of done mutations
       unsigned int cellTypeCounter;
       ::std::vector<MutationInfo> mutationsInfo;  ///< It maintains info about mutations, in order to be saved
-      ::std::string reportName = "inax1_report";
+      ::std::string reportName = "adder_report";
 };
 
 /// \}
-} // end namespace chimera::inax1
+} // end namespace chimera::adder
 } // end namespace chimera
 
-#endif /* INCLUDE_OPERATORS_INAX1_MUTATORS_H */
+#endif /* INCLUDE_OPERATORS_ADDER_MUTATORS_H */

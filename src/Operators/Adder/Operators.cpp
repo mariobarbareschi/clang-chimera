@@ -1,4 +1,4 @@
-//===- Operators.h ----------------------------------------------*- C++ -*-===//
+//===- Operators.cpp ---------------------------------------------*- C++-*-===//
 //
 //  Copyright (C) 2015, 2016  Federico Iannucci (fed.iannucci@gmail.com)
 //
@@ -18,28 +18,27 @@
 //  along with Clang-Chimera. If not, see <http://www.gnu.org/licenses/>.
 //
 //===----------------------------------------------------------------------===//
-/// \file Operators.h
+/// \file Operators.cpp
 /// \author Andrea Aletto
 /// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_INAX1_OPERATORS_H
-#define INCLUDE_OPERATORS_INAX1_OPERATORS_H
+#include "Operators/Adder/Mutators.h"
+#include "Operators/Adder/Operators.h"
 
-#include "Core/MutationOperator.h"
+::std::unique_ptr<::chimera::m_operator::MutationOperator>
+chimera::adder::getAdderOperator() {
+  ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
+      new ::chimera::m_operator::MutationOperator(
+          "Adder-Operator",   // Operator identifier to use into the conf.csv
+          "Approximate adder cell operator Adder", // Description
+          true) // It is a HOM Operator
+      );
 
-namespace chimera
-{
-namespace inax1
-{
+  // Add mutators to the current operator
+  Op->addMutator(
+      ::chimera::m_operator::MutatorPtr(new ::chimera::adder::MutatorAdder()));
 
-/// \addtogroup OPERATORS_SAMPLE_OPERATORS Sample Mutation Operators
-/// \{
-/// @brief Create and return the ROR Operator
-::std::unique_ptr<::chimera::m_operator::MutationOperator> getInAx1Operator();
-/// \}
-} // end namespace chimera::inax1
-} // end namespace chimera
-
-#endif /* INCLUDE_OPERATORS_INAX1_OPERATORS_H */
-
+  // Return the operator
+  return Op;
+}

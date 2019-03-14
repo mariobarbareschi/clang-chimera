@@ -11,8 +11,8 @@ set (target_lib_name ${target_name})
 add_library(${target_name}
             Mutators.cpp
             Operators.cpp
-            ../InAx1/Mutators.cpp
-            ../InAx1/Operators.cpp
+            ../Adder/Mutators.cpp
+            ../Adder/Operators.cpp
             )
 # Add the include directory
 target_include_directories(${target_name}
