@@ -23,7 +23,7 @@
 /// \brief This file contains sample mutators
 //===----------------------------------------------------------------------===//
 
-#include "Operators/InAx1/Mutators.h"
+#include "Operators/Adder/Mutators.h"
 #include "llvm/Support/ErrorHandling.h"
 
 #include "Log.h"
@@ -31,7 +31,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include <iostream>
 
-#define DEBUG_TYPE "mutator_inax1"
+#define DEBUG_TYPE "mutator_adder"
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -63,8 +63,8 @@ using namespace chimera::log;
 /// \brief It is used to retrieve the node, it hides the binding string.
 ///        In Mutator.h there is code template snippet that should be fine for
 ///        all the majority of the cases.
-bool chimera::inax1::MutatorInAx1::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
-  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
+bool chimera::adder::MutatorAdder::getMatchedNode(const NodeType &node, DynTypedNode &dynNode) {
+  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("adder_op");
   assert(bop && "BinaryOperator is nullptr");
   if (bop != nullptr) {
     dynNode = DynTypedNode::create(*bop);
@@ -76,17 +76,17 @@ bool chimera::inax1::MutatorInAx1::getMatchedNode(const NodeType &node, DynTyped
 /// \brief  This method implements the coarse grained matching rules,
 ///         returning the statement matcher to match the binary
 ///         operation
-StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
+StatementMatcher chimera::adder::MutatorAdder::getStatementMatcher() {
   // It has to match a binary operation with a specific operator name (+) and 
   // specific operands (int, int).
   // In order to retrieve the match, it is necessary to bind a string in this 
-  // case "inax1_op".
+  // case "adder_op".
   return stmt(
     binaryOperator(
       anyOf(hasOperatorName("+"), hasOperatorName("-")),
       hasRHS(XHS_MATCHER("int", "rhs")),
       hasLHS(XHS_MATCHER("int", "lhs"))
-    ).bind("inax1_op"),
+    ).bind("adder_op"),
 
     unless(
           anyOf(
@@ -101,10 +101,10 @@ StatementMatcher chimera::inax1::MutatorInAx1::getStatementMatcher() {
 ///         to be the last "+"" operator of a chain of adds.
 ///         In other words we want that for a statement of "x+y+z+t" the matched
 ///         node has to be the last + (that one between z and t).
-bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
+bool chimera::adder::MutatorAdder::match(const NodeType &node) {
 
     // First operation: Retrieve the node
-    const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
+    const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("adder_op");
     assert(bop && "BinaryOperator is nullptr");
 
     // Second operation: extract lhs and rhs
@@ -152,7 +152,7 @@ bool chimera::inax1::MutatorInAx1::match(const NodeType &node) {
     return true;
 }
 
-Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
+Rewriter &chimera::adder::MutatorAdder::mutate(const NodeType &node, MutatorType type, Rewriter &rw) {
 
     char log_info[500];
 
@@ -161,20 +161,45 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl*)(GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
 
     // Set the operation number
-    unsigned int bopNum = this->operationCounter++;
+    unsigned int bopNum = this->nabCounter++;
     // Local rewriter to hold the original code
     Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
 
     // Retrieve binary operation, left and right hand side
-    BinaryOperator *bop   = (BinaryOperator*) node.Nodes.getNodeAs<BinaryOperator>("inax1_op");
+    BinaryOperator *bop   = (BinaryOperator*) node.Nodes.getNodeAs<BinaryOperator>("adder_op");
     Expr *internalLhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("lhs");
     Expr *internalRhs     = (Expr*)           node.Nodes.getNodeAs<Expr>("rhs");
 
-    // Add InexactAdders inclusion
-    if(templDecl != NULL) 
+    std::string cellId = "cellType_" + ::std::to_string(this->cellTypeCounter++);
+    std::string cellStr = "inexact_adders::InexactAdderType ";
+    cellStr.append(cellId);
+    cellStr.append(" = inexact_adders::InAx1;\n");
+
+    // Add InexactAdders inclusion and cellType
+    if(templDecl != NULL) {
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), cellStr.c_str());
       rw.InsertTextBefore(templDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
-    else                  
+
+      // Information for the report:
+      MutatorAdder::MutationInfo mutationInfo;
+      mutationInfo.nabId = cellId;
+      FullSourceLoc loc(templDecl->getSourceRange().getBegin(), *(node.SourceManager));
+      mutationInfo.line = loc.getSpellingLineNumber();
+      this->mutationsInfo.push_back(mutationInfo);  
+
+    } else {                  
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), cellStr.c_str());  
       rw.InsertTextBefore(funDecl->getSourceRange().getBegin(), "#include <inexact_adders.h>\n");
+
+      // Information for the report:
+      MutatorAdder::MutationInfo mutationInfo;
+      mutationInfo.nabId = cellId;
+      FullSourceLoc loc(funDecl->getSourceRange().getBegin(), *(node.SourceManager));
+      mutationInfo.line = loc.getSpellingLineNumber();
+      this->mutationsInfo.push_back(mutationInfo);  
+    }
+
+    
     
   do{
     
@@ -210,7 +235,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     }
 
     // Start collecting information for the report (everything but the return variable):
-    MutatorInAx1::MutationInfo mutationInfo;
+    MutatorAdder::MutationInfo mutationInfo;
 
     // * Operation Identifier
     mutationInfo.nabId = nabId;
@@ -238,7 +263,7 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     mutationInfo.retOp = "NULL";
 
     // Form the replacing string
-    ::std::string bopReplacement = "InAx1_adder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ")";
+    ::std::string bopReplacement = "inexact_adders::inexactAdder(" + nabId + ", " + lhsString + ", " + rhsString + ", " + operationString + ", " + cellId + ")";
       
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
@@ -326,14 +351,14 @@ Rewriter &chimera::inax1::MutatorInAx1::mutate(const NodeType &node, MutatorType
     this->mutationsInfo.push_back(mutationInfo);
   } while(bop != NULL);
 
-    this->operationCounter = bopNum;
+    this->nabCounter = bopNum;
 
     return rw;
 
 
 }
 
-void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
+void chimera::adder::MutatorAdder::onCreatedMutant(const ::std::string &mDir) {
   // Create a specific report inside the mutant directory
 
   ::std::error_code error;
@@ -344,7 +369,7 @@ void chimera::inax1::MutatorInAx1::onCreatedMutant(const ::std::string &mDir) {
   while( !(this->mutationsInfo.empty()) ){
     ChimeraLogger::verbose("Writing element...");
 
-    MutatorInAx1::MutationInfo mutationInfo = this->mutationsInfo.back();
+    MutatorAdder::MutationInfo mutationInfo = this->mutationsInfo.back();
     report << mutationInfo.nabId << "," << mutationInfo.line << ","
            << "\"" << mutationInfo.op1 << "\","
            << "\"" << mutationInfo.op2 << "\","
