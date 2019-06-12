@@ -1,0 +1,14 @@
+#!/bin/bash
+
+LLVM_LIBS="$(llvm-config --components)"
+LLVM_LIBS=$(echo $LLVM_LIBS | sed "s/ /;/g")
+LLVM_LIBS=$(echo $LLVM_LIBS | sed "s/all-targets;//g")
+BUILD_TYPE=$1
+if [[ ! $BUILD_TYPE ]]; then 
+    BUILD_TYPE=Release
+fi
+echo $BUILD_TYPE
+rm -Rf build
+mkdir build
+cd build
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_COMPS=$(echo $LLVM_LIBS)

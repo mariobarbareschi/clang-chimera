@@ -502,7 +502,7 @@ public:
     // Delete the temp directory
     ::llvm::sys::fs::remove(tempDir);
 
-    //    ChimeraLogger::verbose(" [ DONE ] Cleaning up");
+       ChimeraLogger::verbose(" [ DONE ] Cleaning up");
   }
 
 private:
