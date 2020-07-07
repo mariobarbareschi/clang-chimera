@@ -222,13 +222,13 @@ static int  mapOpCode(::clang::BinaryOperator::Opcode code) {
   
   rw.InsertTextBefore(funDecl->getSourceRange().getBegin(),"int stride" + to_string(this->opId) + " = 1;\n");
 
-  rw.InsertTextBefore(fst->getSourceRange().getBegin(),
-                      "stride" + to_string(this->opId) + " = 1;\n");
+//  rw.InsertTextBefore(fst->getSourceRange().getBegin(),
+//                      "stride" + to_string(this->opId) + " = 1;\n");
 
   // Retrive left operator from condition
   std::string lhs = rw.getRewrittenText(this->cond->getLHS()->getSourceRange());
   // Declare Replacement String
-  std::string replacement = "if ( " + lhs + " \% stride" + to_string(this->opId) + " != 0) {";
+  std::string replacement = "if ( " + lhs + " \% stride" + to_string(this->opId) + " == 0) {";
   // Insert replacement
   rw.InsertTextAfterToken(fst->getRParenLoc(),replacement);
   rw.InsertTextAfterToken(fst->getBody()->getLocEnd(),";}"); 
