@@ -39,7 +39,7 @@ int main(int argc, const char **argv) {
   chimeraTool.registerMutationOperator(::chimera::perforation::getPerforationFirstOperator());
   chimeraTool.registerMutationOperator(::chimera::perforation::getPerforationSecondOperator());
   chimeraTool.registerMutationOperator(::chimera::adder::getAdderOperator());
-  chimeraTool.registerMutationOperator(::chimera::adder::getTruncAdderOperator());
+  chimeraTool.registerMutationOperator(::chimera::truncate::getTruncateIntOperator());
   chimeraTool.registerMutationOperator(::chimera::axdct::getAxDCTOperator());
 
 

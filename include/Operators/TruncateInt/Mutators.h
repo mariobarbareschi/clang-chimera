@@ -28,7 +28,7 @@
 #include "Core/Mutator.h"
 
 namespace chimera {
-namespace adder {
+namespace truncate {
 
 /// \addtogroup OPERATORS_SAMPLE_MUTATORS Sample Mutators
 /// \{
@@ -37,7 +37,7 @@ namespace adder {
  * @brief This mutator matches the binary relational operator >, and replaces it
  * with others (at the moment < and <=).
  */
-class MutatorTruncAdder : public chimera::mutator::Mutator {
+class MutatorTruncateInt : public chimera::mutator::Mutator {
   ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
   struct MutationInfo {
     ::std::string nabId;  ///< Operation Identifier
@@ -55,7 +55,7 @@ class MutatorTruncAdder : public chimera::mutator::Mutator {
   /**
    * @brief Constuctor
    */
-  MutatorTruncAdder()
+  MutatorTruncateInt()
       : Mutator(
             ::chimera::mutator::StatementMatcherType,  // A binary operator is a
                                                                   // statement
@@ -64,7 +64,7 @@ class MutatorTruncAdder : public chimera::mutator::Mutator {
             1,  // One mutation type
             true) {}
 
-  MutatorTruncAdder(::std::string reportName)
+  MutatorTruncateInt(::std::string reportName)
       : Mutator(
             ::chimera::mutator::StatementMatcherType,  // A binary operator is a
                                                                   // statement

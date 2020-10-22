@@ -33,7 +33,7 @@
 #include "Operators/VPA/Operator.h"
 #include "Operators/VPA_Native/Operator.h"
 #include "Operators/Adder/Operators.h"
-#include "Operators/TruncAdder/Operators.h"
+#include "Operators/TruncateInt/Operators.h"
 #include "Operators/AxDCT/Operators.h"
 
 
