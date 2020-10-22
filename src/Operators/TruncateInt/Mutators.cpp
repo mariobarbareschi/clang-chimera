@@ -70,7 +70,7 @@ using namespace chimera::log;
 bool chimera::truncate::MutatorTruncateInt::getMatchedNode(const NodeType &node,
                                                            DynTypedNode &dynNode)
 {
-  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("add_op");
+  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("int_op");
   assert(bop && "BinaryOperator is nullptr");
   if (bop != nullptr)
   {
@@ -88,9 +88,12 @@ StatementMatcher chimera::truncate::MutatorTruncateInt::getStatementMatcher()
   // It has to match a binary operation with a specific operator name (+) and 
   // specific operands (int, int).
   // In order to retrieve the match, it is necessary to bind a string in this 
-  // case "add_op".
+  // case "int_op".
   return stmt(
-      binaryOperator(hasOperatorName("+"),hasRHS(XHS_INT_MATCHER("rhs")),hasLHS(XHS_INT_MATCHER("lhs"))).bind("add_op"),
+      binaryOperator(
+        anyOf(hasOperatorName("+"), hasOperatorName("-"), hasOperatorName("*"), hasOperatorName("/")),
+        hasRHS(XHS_INT_MATCHER("rhs")),
+        hasLHS(XHS_INT_MATCHER("lhs"))).bind("int_op"),
     unless(
       anyOf(
         hasAncestor(callExpr()), //uncomment to avoid mutation of input parameters of a function call
@@ -109,7 +112,7 @@ bool chimera::truncate::MutatorTruncateInt::match(const NodeType &node)
 {
   
   // First operation: Retrieve the node
-  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("add_op");
+  const BinaryOperator *bop = node.Nodes.getNodeAs<BinaryOperator>("int_op");
   assert(bop && "BinaryOperator is nullptr");
   
   // Second operation: extract lhs and rhs
@@ -185,14 +188,13 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
   Rewriter oriRw(*(node.SourceManager), node.Context->getLangOpts());
   
   // Retrieve binary operation, left and right hand side
-  BinaryOperator *bop = (BinaryOperator *) node.Nodes.getNodeAs<BinaryOperator>("add_op");
+  BinaryOperator *bop = (BinaryOperator *) node.Nodes.getNodeAs<BinaryOperator>("int_op");
   Expr *internalLhs = (Expr *) node.Nodes.getNodeAs<Expr>("lhs");
   Expr *internalRhs = (Expr *) node.Nodes.getNodeAs<Expr>("rhs");
   
   // Add InexactAdders inclusion and cellType
   if (templDecl != NULL)
   {
-    
     // Information for the report:
     MutatorTruncateInt::MutationInfo mutationInfo;
     FullSourceLoc loc(templDecl->getSourceRange().getBegin(),
@@ -202,7 +204,6 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     
   } else
   {
-    
     // Information for the report:
     MutatorTruncateInt::MutationInfo mutationInfo;
     FullSourceLoc loc(funDecl->getSourceRange().getBegin(),
@@ -239,28 +240,26 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     // Retrieve the name of the operands
     ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
     ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
-    ::std::string operationString = "";
-    if (bop->getOpcodeStr() == "+")
-    {
-      operationString = "false";
-    } else if (bop->getOpcodeStr() == "-")
-    {
-      operationString = "true";
-    } else
-    {
-      operationString = "UNDEFINED";
-    }
+    ::std::string opcodeStr = bop->getOpcodeStr();
+  //  ::std::string operationString = "";
+  //  if (bop->getOpcodeStr() == "+")
+  //  {
+  //    operationString = "false";
+  //  } else if (bop->getOpcodeStr() == "-")
+  //  {
+  //    operationString = "true";
+  //  } else
+  //  {
+  //    operationString = "UNDEFINED";
+  //  }
     
     // Start collecting information for the report (everything but the return variable):
     MutatorTruncateInt::MutationInfo mutationInfo;
-    
     // * Operation Identifier
     mutationInfo.nabId = nabId;
-    
     // * Line location
     FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
-    
     // * Information about operands:
     // ** LHS
     mutationInfo.op1 = lhsString;
@@ -269,7 +268,6 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     {
       mutationInfo.op1OpTy = ((const BinaryOperator *) internalLhs)->getOpcode();
     }
-    
     // ** RHS
     mutationInfo.op2 = rhsString;
     mutationInfo.op2OpTy = NoOp;
@@ -277,13 +275,13 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     {
       mutationInfo.op2OpTy = ((const BinaryOperator *) internalRhs)->getOpcode();
     }
-    
     // ** Return variable (placeholder)
     mutationInfo.retOp = "NULL";
     
     // Form the replacing string
-    ::std::string bopReplacement =
-      "TRUNC_ADD(" + lhsString + ", " + rhsString + ", " + nabId + ")";
+    ::std::string bopReplacement = "TRUNCATE(TRUNCATE(" + lhsString + ", " + nabId + ")" +
+      opcodeStr +
+      "TRUNCATE(" + rhsString + ", " + nabId + "), " + nabId + ")";
     
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
