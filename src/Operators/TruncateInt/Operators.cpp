@@ -1,4 +1,4 @@
-//===- Operators.h ----------------------------------------------*- C++ -*-===//
+//===- Operators.cpp ---------------------------------------------*- C++-*-===//
 //
 //  Copyright (C) 2015, 2016  Federico Iannucci (fed.iannucci@gmail.com)
 //
@@ -18,27 +18,27 @@
 //  along with Clang-Chimera. If not, see <http://www.gnu.org/licenses/>.
 //
 //===----------------------------------------------------------------------===//
-/// \file Operators.h
+/// \file Operators.cpp
 /// \author Salvatore Barone
+/// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_TRUNC_ADDER_OPERATORS_H
-#define INCLUDE_OPERATORS_TRUNC_ADDER_OPERATORS_H
+#include "Operators/TruncateInt/Mutators.h"
+#include "Operators/TruncateInt/Operators.h"
 
-#include "Core/MutationOperator.h"
+::std::unique_ptr<::chimera::m_operator::MutationOperator>
+chimera::truncate::getTruncateIntOperator() {
+  ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
+      new ::chimera::m_operator::MutationOperator(
+          "Trunc-Operator",   // Operator identifier to use into the conf.csv
+          "Truncation adder operator", // Description
+          true) // It is a HOM Operator
+      );
 
-namespace chimera
-{
-namespace adder
-{
+  // Add mutators to the current operator
+  Op->addMutator(
+      ::chimera::m_operator::MutatorPtr(new ::chimera::truncate::MutatorTruncateInt()));
 
-/// \addtogroup OPERATORS_SAMPLE_OPERATORS Sample Mutation Operators
-/// \{
-/// @brief Create and return the ROR Operator
-::std::unique_ptr<::chimera::m_operator::MutationOperator> getTruncAdderOperator();
-/// \}
-} // end namespace chimera::adder
-} // end namespace chimera
-
-#endif /* INCLUDE_OPERATORS_ADDER_OPERATORS_H */
-
+  // Return the operator
+  return Op;
+}
