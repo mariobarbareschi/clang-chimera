@@ -279,14 +279,12 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     mutationInfo.retOp = "NULL";
     
     // Form the replacing string
-    ::std::string bopReplacement = "TRUNCATE(TRUNCATE(" + lhsString + ", " + nabId + ")" +
-      opcodeStr +
-      "TRUNCATE(" + rhsString + ", " + nabId + "), " + nabId + ")";
+    ::std::string bopReplacement =  "truncate::ax_integer(" + nabId + ", " + lhsString + ") " + opcodeStr +
+                                    " truncate::ax_integer(" + nabId + ", " + rhsString + ")";
     
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
-    ChimeraLogger::verbose(
-      "********************************************************\nDump binary operation:");
+    ChimeraLogger::verbose("********************************************************\nDump binary operation:");
     
     sprintf(log_info, "Operation: %s  ==> [%s]",
             rw.getRewrittenText(bop->getSourceRange()).c_str(),

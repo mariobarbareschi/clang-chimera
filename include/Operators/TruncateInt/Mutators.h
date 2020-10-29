@@ -59,7 +59,7 @@ class MutatorTruncateInt : public chimera::mutator::Mutator {
       : Mutator(
             ::chimera::mutator::StatementMatcherType,  // A binary operator is a
                                                                   // statement
-            "mutator_truncadder",                         // String identifier
+            "mutator_trunc_integer",                         // String identifier
             "Replaces exact sum with inexact sum based on truncation",  // Description
             1,  // One mutation type
             true) {}
@@ -68,7 +68,7 @@ class MutatorTruncateInt : public chimera::mutator::Mutator {
       : Mutator(
             ::chimera::mutator::StatementMatcherType,  // A binary operator is a
                                                                   // statement
-            "mutator_truncadder",                         // String identifier
+            "mutator_trunc_integer",                         // String identifier
             "Replaces exact sum with inexact sum based on truncation",  // Description
             1,  // One mutation type
             true),
