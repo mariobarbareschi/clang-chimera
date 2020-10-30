@@ -176,11 +176,10 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
   
   char log_info[500];
   
-  // Retrieve a pointer to function declaration (or template function declaration) to insert global variables before it
-  const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>(
-    "functionDecl");
-  const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl *) (GET_PARENT_NODE(
-    node, funDecl, FunctionTemplateDecl));
+  // Retrieve a pointer to function declaration (or template function
+  // declaration) to insert global variables before it
+  const FunctionDecl *funDecl = node.Nodes.getNodeAs<FunctionDecl>("functionDecl");
+  const FunctionTemplateDecl *templDecl = (FunctionTemplateDecl *) (GET_PARENT_NODE(node, funDecl, FunctionTemplateDecl));
   
   // Set the operation number
   unsigned int bopNum = this->nabCounter++;
@@ -189,33 +188,28 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
   
   // Retrieve binary operation, left and right hand side
   BinaryOperator *bop = (BinaryOperator *) node.Nodes.getNodeAs<BinaryOperator>("int_op");
-  Expr *internalLhs = (Expr *) node.Nodes.getNodeAs<Expr>("lhs");
-  Expr *internalRhs = (Expr *) node.Nodes.getNodeAs<Expr>("rhs");
+  const Expr *internalLhs = (const Expr *) node.Nodes.getNodeAs<Expr>("lhs");
+  const Expr *internalRhs = (const Expr *) node.Nodes.getNodeAs<Expr>("rhs");
   
-  // Add InexactAdders inclusion and cellType
-  if (templDecl != NULL)
-  {
-    // Information for the report:
-    MutatorTruncateInt::MutationInfo mutationInfo;
-    FullSourceLoc loc(templDecl->getSourceRange().getBegin(),
-                      *(node.SourceManager));
-    mutationInfo.line = loc.getSpellingLineNumber();
-    this->mutationsInfo.push_back(mutationInfo);
-    
-  } else
-  {
-    // Information for the report:
-    MutatorTruncateInt::MutationInfo mutationInfo;
-    FullSourceLoc loc(funDecl->getSourceRange().getBegin(),
-                      *(node.SourceManager));
-    mutationInfo.line = loc.getSpellingLineNumber();
-    this->mutationsInfo.push_back(mutationInfo);
-  }
-  
+  // Add Inex
+//  if (templDecl != NULL)
+//  {
+//    // Information for the report:
+//    MutatorTruncateInt::MutationInfo mutationInfo;
+//    FullSourceLoc loc(templDecl->getSourceRange().getBegin(), *(node.SourceManager));
+//    mutationInfo.line = loc.getSpellingLineNumber();
+//    this->mutationsInfo.push_back(mutationInfo);
+//  } else
+//  {
+//    // Information for the report:
+//    MutatorTruncateInt::MutationInfo mutationInfo;
+//    FullSourceLoc loc(funDecl->getSourceRange().getBegin(), *(node.SourceManager));
+//    mutationInfo.line = loc.getSpellingLineNumber();
+//    this->mutationsInfo.push_back(mutationInfo);
+//  }
   
   do
   {
-    
     Expr *lhs = (Expr *) bop->getLHS()->IgnoreCasts();
     Expr *rhs = (Expr *) bop->getRHS()->IgnoreCasts();
     
@@ -231,79 +225,52 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     ::std::string nabId = "nab_" + ::std::to_string(bopNum++);
     
     if (templDecl != NULL)
-      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(),
-                          "int " + nabId + " = 0;\n");
+      rw.InsertTextBefore(templDecl->getSourceRange().getBegin(),"int " + nabId + " = 0;\n");
     else
-      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(),
-                          "int " + nabId + " = 0;\n");
+      rw.InsertTextBefore(funDecl->getSourceRange().getBegin(),"int " + nabId + " = 0;\n");
     
     // Retrieve the name of the operands
     ::std::string lhsString = rw.getRewrittenText(lhs->getSourceRange());
     ::std::string rhsString = rw.getRewrittenText(rhs->getSourceRange());
     ::std::string opcodeStr = bop->getOpcodeStr();
-  //  ::std::string operationString = "";
-  //  if (bop->getOpcodeStr() == "+")
-  //  {
-  //    operationString = "false";
-  //  } else if (bop->getOpcodeStr() == "-")
-  //  {
-  //    operationString = "true";
-  //  } else
-  //  {
-  //    operationString = "UNDEFINED";
-  //  }
     
-    // Start collecting information for the report (everything but the return variable):
+    // Collecting information for the report (everything but the return variable):
     MutatorTruncateInt::MutationInfo mutationInfo;
-    // * Operation Identifier
     mutationInfo.nabId = nabId;
     // * Line location
     FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
     // * Information about operands:
-    // ** LHS
     mutationInfo.op1 = lhsString;
     mutationInfo.op1OpTy = NoOp;
     if (isLhsBinaryOp)
-    {
       mutationInfo.op1OpTy = ((const BinaryOperator *) internalLhs)->getOpcode();
-    }
     // ** RHS
     mutationInfo.op2 = rhsString;
     mutationInfo.op2OpTy = NoOp;
     if (isRhsBinaryOp)
-    {
       mutationInfo.op2OpTy = ((const BinaryOperator *) internalRhs)->getOpcode();
-    }
     // ** Return variable (placeholder)
     mutationInfo.retOp = "NULL";
     
     // Form the replacing string
     ::std::string bopReplacement =  "truncate::ax_integer(" + nabId + ", " + lhsString + ") " + opcodeStr +
                                     " truncate::ax_integer(" + nabId + ", " + rhsString + ")";
+    // Replace all the text of the binary operator with a function call
+    rw.ReplaceText(bop->getSourceRange(), bopReplacement);
     
     ////////////////////////////////////////////////////////////////////////////////////////////
     /// Debug
     ChimeraLogger::verbose("********************************************************\nDump binary operation:");
-    
-    sprintf(log_info, "Operation: %s  ==> [%s]",
-            rw.getRewrittenText(bop->getSourceRange()).c_str(),
-            bop->getOpcodeStr().str().c_str());
+    sprintf(log_info, "Operation: %s  ==> [%s]", rw.getRewrittenText(bop->getSourceRange()).c_str(), bop->getOpcodeStr().str().c_str());
     ChimeraLogger::verbose(log_info);
-    
     sprintf(log_info, "LHS: %s", lhsString.c_str());
     ChimeraLogger::verbose(log_info);
-    
     sprintf(log_info, "RHS: %s", rhsString.c_str());
     ChimeraLogger::verbose(log_info);
-    
     sprintf(log_info, "Mutation in: %s\n", bopReplacement.c_str());
     ChimeraLogger::verbose(log_info);
-    
-    //////////////////////////////////////////////////////////////////////////////////////////// 
-    
-    // Replace all the text of the binary operator with a function call
-    rw.ReplaceText(bop->getSourceRange(), bopReplacement);
+    ////////////////////////////////////////////////////////////////////////////////////////////
     
     // Stop if the current node (bop) has no parents
     if (node.Context->getParents(*bop).empty())
@@ -314,71 +281,63 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     
     // Retrieve parent type
     std::string parentType = PARENT_NODE_TYPE(node, bop);
-    
     if (parentType == "BinaryOperator")
     {
       // If the parent is a BinaryOperator then assign to bop its parent
       ChimeraLogger::verbose("Parent is a BOP\n");
       bop = (BinaryOperator *) (GET_PARENT_NODE(node, bop, BinaryOperator));
-      
-    } else if ((parentType == "ParenExpr"))
-    {
-      // If the parent is a parenthesis node then retrieve it and traverse up the ast
-      // till the next non-parenthesis node. 
-      ParenExpr *parens = (ParenExpr *) (GET_PARENT_NODE(node, bop, ParenExpr));
-      while ((PARENT_NODE_TYPE(node, parens) == "ParenExpr"))
-      {
-        parens = (ParenExpr *) (GET_PARENT_NODE(node, parens, ParenExpr));
-      }
-      ChimeraLogger::verbose("Parens skipped successfully.\n");
-      
-      // If the content of parenthesis is not a BinaryOperator then exit else assign
-      // parenthesis content to bop
-      if ((PARENT_NODE_TYPE(node, parens) != "BinaryOperator"))
-      {
-        sprintf(log_info,
-                "WARNING: Unexpected parens content of type [%s]. Exiting...\n",
-                PARENT_NODE_TYPE(node, parens).str().c_str());
-        ChimeraLogger::verbose(log_info);
-        bop = NULL;
-      } else
-        bop = (BinaryOperator *) (GET_PARENT_NODE(node, parens,
-                                                  BinaryOperator));
-      
-    } else if ((parentType == "FunDecl") || (parentType == "VarDecl") ||
-               (parentType == "ImplicitCastExpr"))
-    {
-      // If the parent is a FunDecl or a VarDecl then exit
-      ChimeraLogger::verbose(
-        "Function o Variable Declaration reached. Exiting...\n");
-      bop = NULL;
-      
-    } else
-    {
-      // If the parent is not one of the previous IFs, then exit and print the unexpected type
-      sprintf(log_info, "WARNING: Unexpected parent of type [%s]. Exiting...\n",
-              parentType.c_str());
-      ChimeraLogger::verbose(log_info);
-      bop = NULL;
     }
+    else
+      if ((parentType == "ParenExpr"))
+      {
+        // If the parent is a parenthesis node then retrieve it and traverse up the ast
+        // till the next non-parenthesis node.
+        ParenExpr *parens = (ParenExpr *) (GET_PARENT_NODE(node, bop, ParenExpr));
+        while ((PARENT_NODE_TYPE(node, parens) == "ParenExpr"))
+        {
+          parens = (ParenExpr *) (GET_PARENT_NODE(node, parens, ParenExpr));
+        }
+        ChimeraLogger::verbose("Parens skipped successfully.\n");
+        
+        // If the content of parenthesis is not a BinaryOperator then exit else assign
+        // parenthesis content to bop
+        if ((PARENT_NODE_TYPE(node, parens) != "BinaryOperator"))
+        {
+          sprintf(log_info,
+                  "WARNING: Unexpected parens content of type [%s]. Exiting...\n",
+                  PARENT_NODE_TYPE(node, parens).str().c_str());
+          ChimeraLogger::verbose(log_info);
+          bop = NULL;
+        }
+        else
+          bop = (BinaryOperator *) (GET_PARENT_NODE(node, parens, BinaryOperator));
+      }
+      else
+        if ((parentType == "FunDecl") || (parentType == "VarDecl") || (parentType == "ImplicitCastExpr"))
+        {
+          // If the parent is a FunDecl or a VarDecl then exit
+          ChimeraLogger::verbose("Function o Variable Declaration reached. Exiting...\n");
+          bop = NULL;
+        }
+        else
+        {
+          // If the parent is not one of the previous IFs, then exit and print the unexpected type
+          sprintf(log_info, "WARNING: Unexpected parent of type [%s]. Exiting...\n", parentType.c_str());
+          ChimeraLogger::verbose(log_info);
+          bop = NULL;
+        }
     
     if (bop && (bop->getOpcodeStr()) == "=")
     {
       // Get return variable name, if exists
       
       // Check if it is a DeclRef expression
-      if (::llvm::isa<DeclRefExpr>(bop->getLHS()))
-      {
-        mutationInfo.retOp = ((const DeclRefExpr *) (bop->getLHS()))
-          ->getNameInfo()
-          .getName()
-          .getAsString();
-      }
+      //if (::llvm::isa<DeclRefExpr>(bop->getLHS()))
+        mutationInfo.retOp = ((const DeclRefExpr *) (bop->getLHS()))->getNameInfo().getName().getAsString();
       
       // If a new BinaryOperator has been assigned to bop (indeed bop is not NULL) 
       // and it's a =, then exit 
-      sprintf(log_info, "BOP opcod is [%s]. Exiting...\n",
-              bop->getOpcodeStr().str().c_str());
+      sprintf(log_info, "BOP opcod is [%s]. Exiting...\n", bop->getOpcodeStr().str().c_str());
       ChimeraLogger::verbose(log_info);
       bop = NULL;
     }
