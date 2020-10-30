@@ -39,16 +39,16 @@ namespace truncate {
  */
 class MutatorTruncateInt : public chimera::mutator::Mutator {
   ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
-  struct MutationInfo {
-    ::std::string nabId;  ///< Operation Identifier
-    unsigned line;        ///< Occurrence line
-    ::std::string op1;    ///< Operand 1
-    ::clang::BinaryOperatorKind
-        op1OpTy;        ///< It is != NoOp if operand 1 is a binary operation
-    ::std::string op2;  ///< Operand 2
-    ::clang::BinaryOperatorKind
-        op2OpTy;          ///< It is != NoOp if operand 2 is a binary operation
-    ::std::string retOp;  ///< Operand which eventually is returned
+  struct MutationInfo
+  {
+    ::std::string nabId;                      ///< Operation Identifier
+    unsigned line;                            ///< Occurrence line
+    ::std::string op1;                        ///< Operand 1
+    ::clang::BinaryOperatorKind op1OpTy;      ///< It is != NoOp if operand 1 is a binary operation
+    ::std::string opTy;                       ///< Binary operator type
+    ::std::string op2;                        ///< Operand 2
+    ::clang::BinaryOperatorKind op2OpTy;      ///< It is != NoOp if operand 2 is a binary operation
+    ::std::string retOp;                      ///< Operand which eventually is returned
   };
 
  public:

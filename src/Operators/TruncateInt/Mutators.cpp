@@ -146,20 +146,12 @@ bool chimera::truncate::MutatorTruncateInt::match(const NodeType &node)
   /// Debug
   char log_string[500];
   Rewriter rw(*(node.SourceManager), node.Context->getLangOpts());
-  ChimeraLogger::verbose(
-    "********************************************************\nMatched operation:");
-  
-  sprintf(log_string, "Operation: %s ==> [%s]",
-          rw.getRewrittenText(bop->getSourceRange()).c_str(),
-          bop->getOpcodeStr().str().c_str());
+  ChimeraLogger::verbose("********************************************************\nMatched operation:");
+  sprintf(log_string, "Operation: %s ==> [%s]", rw.getRewrittenText(bop->getSourceRange()).c_str(), bop->getOpcodeStr().str().c_str());
   ChimeraLogger::verbose(log_string);
-  
-  sprintf(log_string, "LHS: %s",
-          rw.getRewrittenText(lhs->getSourceRange()).c_str());
+  sprintf(log_string, "LHS: %s", rw.getRewrittenText(lhs->getSourceRange()).c_str());
   ChimeraLogger::verbose(log_string);
-  
-  sprintf(log_string, "RHS: %s\n",
-          rw.getRewrittenText(rhs->getSourceRange()).c_str());
+  sprintf(log_string, "RHS: %s\n", rw.getRewrittenText(rhs->getSourceRange()).c_str());
   ChimeraLogger::verbose(log_string);
   ////////////////////////////////////////////////////////////////////////////////////////////
   
@@ -191,23 +183,6 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
   const Expr *internalLhs = (const Expr *) node.Nodes.getNodeAs<Expr>("lhs");
   const Expr *internalRhs = (const Expr *) node.Nodes.getNodeAs<Expr>("rhs");
   
-  // Add Inex
-//  if (templDecl != NULL)
-//  {
-//    // Information for the report:
-//    MutatorTruncateInt::MutationInfo mutationInfo;
-//    FullSourceLoc loc(templDecl->getSourceRange().getBegin(), *(node.SourceManager));
-//    mutationInfo.line = loc.getSpellingLineNumber();
-//    this->mutationsInfo.push_back(mutationInfo);
-//  } else
-//  {
-//    // Information for the report:
-//    MutatorTruncateInt::MutationInfo mutationInfo;
-//    FullSourceLoc loc(funDecl->getSourceRange().getBegin(), *(node.SourceManager));
-//    mutationInfo.line = loc.getSpellingLineNumber();
-//    this->mutationsInfo.push_back(mutationInfo);
-//  }
-  
   do
   {
     Expr *lhs = (Expr *) bop->getLHS()->IgnoreCasts();
@@ -235,21 +210,16 @@ Rewriter &chimera::truncate::MutatorTruncateInt::mutate(const NodeType &node,
     ::std::string opcodeStr = bop->getOpcodeStr();
     
     // Collecting information for the report (everything but the return variable):
+    FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
     MutatorTruncateInt::MutationInfo mutationInfo;
     mutationInfo.nabId = nabId;
-    // * Line location
-    FullSourceLoc loc(bop->getSourceRange().getBegin(), *(node.SourceManager));
     mutationInfo.line = loc.getSpellingLineNumber();
     // * Information about operands:
     mutationInfo.op1 = lhsString;
-    mutationInfo.op1OpTy = NoOp;
-    if (isLhsBinaryOp)
-      mutationInfo.op1OpTy = ((const BinaryOperator *) internalLhs)->getOpcode();
-    // ** RHS
+    mutationInfo.op1OpTy = (isLhsBinaryOp ? ((const BinaryOperator *) internalLhs)->getOpcode() : NoOp);
+    mutationInfo.opTy = opcodeStr;
     mutationInfo.op2 = rhsString;
-    mutationInfo.op2OpTy = NoOp;
-    if (isRhsBinaryOp)
-      mutationInfo.op2OpTy = ((const BinaryOperator *) internalRhs)->getOpcode();
+    mutationInfo.op2OpTy = (isRhsBinaryOp ? ((const BinaryOperator *) internalRhs)->getOpcode() : NoOp);
     // ** Return variable (placeholder)
     mutationInfo.retOp = "NULL";
     
@@ -370,10 +340,12 @@ void chimera::truncate::MutatorTruncateInt::onCreatedMutant(
     ChimeraLogger::verbose("Writing element...");
     
     MutatorTruncateInt::MutationInfo mutationInfo = this->mutationsInfo.back();
-    report << mutationInfo.nabId << "," << mutationInfo.line << ","
-           << "\"" << mutationInfo.op1 << "\","
-           << "\"" << mutationInfo.op2 << "\","
-           << "\"" << mutationInfo.retOp << "\"\n";
+    report  << mutationInfo.nabId << ","
+            << mutationInfo.line << ","
+            << "\"" << mutationInfo.op1 << "\","
+            << "\"" << mutationInfo.opTy << "\","
+            << "\"" << mutationInfo.op2 << "\","
+            << "\"" << mutationInfo.retOp << "\"\n";
     
     this->mutationsInfo.pop_back();
   }
