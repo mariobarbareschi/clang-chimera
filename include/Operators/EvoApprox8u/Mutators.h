@@ -22,13 +22,13 @@
 /// \author Salvatore Barone
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_TRUNC_ADDER_MUTATORS_H
-#define INCLUDE_OPERATORS_TRUNC_ADDER_MUTATORS_H
+#ifndef INCLUDE_OPERATORS_EVOAPPROX8U_MUTATORS_H
+#define INCLUDE_OPERATORS_EVOAPPROX8U_MUTATORS_H
 
 #include "Core/Mutator.h"
 
 namespace chimera {
-namespace truncate {
+namespace evoapprox8u {
 
 /// \addtogroup OPERATORS_SAMPLE_MUTATORS Sample Mutators
 /// \{
@@ -37,7 +37,7 @@ namespace truncate {
  * @brief This mutator matches the binary relational operator >, and replaces it
  * with others (at the moment < and <=).
  */
-class MutatorTruncateInt : public chimera::mutator::Mutator {
+class MutatorEvoApprox8u : public chimera::mutator::Mutator {
   ::clang::BinaryOperatorKind NoOp = ::clang::BinaryOperatorKind::BO_Comma;
   struct MutationInfo
   {
@@ -55,21 +55,21 @@ class MutatorTruncateInt : public chimera::mutator::Mutator {
   /**
    * @brief Constuctor
    */
-  MutatorTruncateInt()
+  MutatorEvoApprox8u()
       : Mutator(
             ::chimera::mutator::StatementMatcherType,  // A binary operator is a
                                                                   // statement
-            "mutator_trunc_integer",                         // String identifier
-            "Replaces exact operations with inexact ones, based on truncation",  // Description
+            "evoapprox8u",                         // String identifier
+            "Replaces exact operations with inexact ones, based on EvoApproxLib",  // Description
             1,  // One mutation type
             true) {}
 
-  MutatorTruncateInt(::std::string reportName)
+  MutatorEvoApprox8u(::std::string reportName)
       : Mutator(
             ::chimera::mutator::StatementMatcherType,  // A binary operator is a
                                                                   // statement
-            "mutator_trunc_integer",                         // String identifier
-            "Replaces exact operations with inexact ones, based on truncation",  // Description
+            "evoapprox8u",                         // String identifier
+            "Replaces exact operations with inexact ones, based on EvoApproxLib",  // Description
             1,  // One mutation type
             true),
         reportName(reportName) {}
@@ -94,7 +94,7 @@ class MutatorTruncateInt : public chimera::mutator::Mutator {
   unsigned int nabCounter;                      ///< Counter to keep tracks of done mutations
   ::std::vector<MutationInfo> mutationsInfo;    ///< It maintains info about mutations, in order to be
                                                 ///< saved
-  ::std::string reportName = "trunc_adder_report";
+  ::std::string reportName = "evoapprox8u";
 };
 
 /// \}

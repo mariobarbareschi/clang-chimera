@@ -17,7 +17,5 @@ file(GLOB libs ${CMAKE_SOURCE_DIR}/lib/operators/lib*.a)
 foreach(lib ${libs})
   message(STATUS "Mutation Operator library: ${lib}")
   # Link the library found
-  target_link_libraries(${operators_lib} INTERFACE
-                        ${lib}
-                        )
+  target_link_libraries(${operators_lib} INTERFACE ${lib})
 endforeach(lib)
