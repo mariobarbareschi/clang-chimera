@@ -224,8 +224,8 @@ Rewriter &chimera::evoapprox8u::MutatorEvoApprox8u::mutate(const NodeType &node,
     mutationInfo.retOp = "NULL";
     
     // Form the replacing string
-    ::std::string bopReplacement =  "evoapproxlib::evoapprox_u8_t(" + lhsString + ", " + nabId + ") " + opcodeStr +
-                                    " evoapproxlib::evoapprox_u8_t(" + rhsString + ", " + nabId + ")";
+    ::std::string bopReplacement =  "evoapproxlib::evoapprox_t(" + lhsString + ", " + nabId + ") " + opcodeStr +
+                                    " evoapproxlib::evoapprox_t(" + rhsString + ", " + nabId + ")";
     // Replace all the text of the binary operator with a function call
     rw.ReplaceText(bop->getSourceRange(), bopReplacement);
     
