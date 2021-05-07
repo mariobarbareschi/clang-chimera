@@ -47,6 +47,7 @@ endif()
 # Required packages
 ## Require LLVM and Clang
 find_package(LLVM 3.9.1 REQUIRED CONFIG)
+#find_package(LLVM 7.0.1 REQUIRED CONFIG)
 ## Require Pthreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

@@ -1,7 +1,7 @@
-//===- Operators.h ----------------------------------------------*- C++ -*-===//
+//===- Operators.cpp ---------------------------------------------*- C++-*-===//
 //
 //  Copyright (C) 2015, 2016  Federico Iannucci (fed.iannucci@gmail.com)
-// 
+//
 //  This file is part of Clang-Chimera.
 //
 //  Clang-Chimera is free software: you can redistribute it and/or modify
@@ -18,26 +18,25 @@
 //  along with Clang-Chimera. If not, see <http://www.gnu.org/licenses/>.
 //
 //===----------------------------------------------------------------------===//
-/// \file Operators.h
-/// \author Federico Iannucci 
-/// \brief This file makes visible Mutation Operators
+/// \file Operators.cpp
+/// \author Salvatore Barone
+/// \brief This file contains sample operators
 //===----------------------------------------------------------------------===//
 
-#ifndef INCLUDE_OPERATORS_OPERATORS_H
-#define INCLUDE_OPERATORS_OPERATORS_H
-
-#include "Operators/Examples/Operators.h"
-#include "Operators/LoopFirst/Operator.h"
-#include "Operators/LoopSecond/Operator.h"
-#include "Operators/FLAP/Operator.h"
-#include "Operators/VPA/Operator.h"
-#include "Operators/VPA_Native/Operator.h"
-#include "Operators/Adder/Operators.h"
-#include "Operators/AxDCT/Operators.h"
-#include "Operators/TruncateInt/Operators.h"
 #include "Operators/EvoApprox8u/Operators.h"
+#include "Operators/EvoApprox8u/Mutators.h"
 
+::std::unique_ptr<::chimera::m_operator::MutationOperator> chimera::evoapprox8u::getEvoApprox8uOperator() {
+  ::std::unique_ptr<::chimera::m_operator::MutationOperator> Op(
+      new ::chimera::m_operator::MutationOperator(
+          "EvoApprox8u",                        // Operator identifier to use into the conf.csv
+          "EvoApprox 8 bit unsigned",           // Description
+          true)                                 // It is a HOM Operator
+      );
 
+  // Add mutators to the current operator
+  Op->addMutator(::chimera::m_operator::MutatorPtr(new ::chimera::evoapprox8u::MutatorEvoApprox8u()));
 
-
-#endif /* INCLUDE_OPERATORS_OPERATORS_H */
+  // Return the operator
+  return Op;
+}

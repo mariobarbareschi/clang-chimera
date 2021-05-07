@@ -40,6 +40,8 @@ int main(int argc, const char **argv) {
   chimeraTool.registerMutationOperator(::chimera::perforation::getPerforationSecondOperator());
   chimeraTool.registerMutationOperator(::chimera::adder::getAdderOperator());
   chimeraTool.registerMutationOperator(::chimera::axdct::getAxDCTOperator());
+  chimeraTool.registerMutationOperator(::chimera::truncate::getTruncateIntOperator());
+  chimeraTool.registerMutationOperator(::chimera::evoapprox8u::getEvoApprox8uOperator());
 
 
   return chimeraTool.run(argc, argv);

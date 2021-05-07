@@ -3,3 +3,10 @@ lib/operators/*
 build/*
 build39/*
 settings.json
+cmake-build-debug/
+
+.idea/
+
+tags
+
+*.code-workspace
